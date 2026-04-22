@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="90" fill="#0f1117"/>
+  <rect x="28" y="28" width="456" height="456" rx="70" fill="#1a1d27"/>
+  <rect x="60" y="160" width="392" height="56" rx="10" fill="#1D9E75" opacity="0.15"/>
+  <rect x="60" y="240" width="240" height="16" rx="6" fill="#1D9E75" opacity="0.5"/>
+  <rect x="60" y="272" width="180" height="12" rx="5" fill="#9ca3af" opacity="0.3"/>
+  <rect x="60" y="300" width="210" height="12" rx="5" fill="#9ca3af" opacity="0.3"/>
+  <circle cx="390" cy="320" r="80" fill="#1D9E75" opacity="0.12"/>
+  <circle cx="390" cy="320" r="55" fill="#1D9E75" opacity="0.2"/>
+  <text x="390" y="338" font-family="system-ui,-apple-system,sans-serif" font-size="52" font-weight="700" fill="#1D9E75" text-anchor="middle">$</text>
+  <rect x="60" y="390" width="392" height="4" rx="2" fill="#1D9E75" opacity="0.3"/>
+</svg>
