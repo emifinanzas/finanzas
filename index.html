@@ -130,7 +130,7 @@ option{background:var(--bg2);}
 /* mobile */
 .mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--b);z-index:100;padding:8px 0 calc(8px + env(safe-area-inset-bottom));}
 .mob-inner{display:flex;justify-content:space-around;}
-.mob-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 12px;cursor:pointer;color:var(--t3);font-size:10px;}
+.mob-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 6px;cursor:pointer;color:var(--t3);font-size:9px;}
 .mob-item.on{color:var(--teal);}
 .mob-item svg{width:20px;height:20px;}
 .mob-fab{display:none;position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--teal);color:#fff;border:none;font-size:28px;cursor:pointer;z-index:101;box-shadow:0 4px 20px rgba(29,158,117,.4);}
@@ -152,13 +152,14 @@ option{background:var(--bg2);}
   .sb{display:none;}
   .mob-nav{display:block;}
   .mob-fab{display:flex;align-items:center;justify-content:center;}
-  .main{padding-bottom:70px;}
+  .main{padding-bottom:70px;padding-top:48px;}
   .content{padding:16px;}
   .kg{grid-template-columns:1fr 1fr;gap:10px;}
   .cr{grid-template-columns:1fr;}
   .fr2,.fr3{grid-template-columns:1fr;}
   .fc{padding:16px;max-width:100%;}
   .kv{font-size:17px;}
+  #mobDriveBar{display:flex !important;}
 }
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
@@ -431,12 +432,27 @@ option{background:var(--bg2);}
   <div class="mob-inner">
     <div class="mob-item on" id="mni-resumen" onclick="showSecMob('resumen',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Inicio</div>
     <div class="mob-item" id="mni-egresos" onclick="showSecMob('egresos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>Egresos</div>
-    <div class="mob-item" id="mni-categorias" onclick="showSecMob('categorias',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Cats</div>
+    <div class="mob-item" id="mni-creditos" onclick="showSecMob('creditos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Créditos</div>
     <div class="mob-item" id="mni-movimientos" onclick="showSecMob('movimientos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>Movs</div>
     <div class="mob-item" id="mni-agregar" onclick="showSecMob('agregar',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Agregar</div>
   </div>
 </div>
 <button class="mob-fab" onclick="showQuickAdd()">+</button>
+
+<!-- Mobile Drive bar -->
+<div id="mobDriveBar" style="display:none;position:fixed;top:0;left:0;right:0;background:var(--bg2);border-bottom:1px solid var(--b);z-index:99;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3);">
+    <div class="drive-dot" id="mobDriveDot"></div>
+    <span id="mobDriveTxt">Drive desconectado</span>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button id="mobBtnConn" onclick="connectDrive()" style="padding:5px 10px;font-size:11px;background:var(--bg3);border:1px solid var(--b2);color:var(--t2);border-radius:6px;cursor:pointer;">Conectar</button>
+    <div id="mobDriveActions" style="display:none;gap:6px;display:none">
+      <button onclick="loadFromDrive()" style="padding:5px 10px;font-size:11px;background:var(--bg3);border:1px solid var(--b2);color:var(--t2);border-radius:6px;cursor:pointer;">↓ Cargar</button>
+      <button onclick="saveToDrive()" style="padding:5px 10px;font-size:11px;background:rgba(29,158,117,.15);border:1px solid rgba(29,158,117,.3);color:var(--teal2);border-radius:6px;cursor:pointer;">↑ Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Quick add modal -->
 <div class="modal-overlay" id="qaOverlay" onclick="if(event.target===this)closeQuickAdd()">
@@ -657,10 +673,16 @@ function disconnectDrive() {
 }
 function updateDriveUI() {
   const ok = driveConnected && accessToken;
+  // Desktop sidebar
   document.getElementById('dDot').className = 'drive-dot' + (ok ? ' on' : '');
   document.getElementById('dTxt').textContent = ok ? 'Conectado' : 'Desconectado';
   document.getElementById('btnConn').style.display = ok ? 'none' : 'block';
   document.getElementById('dActions').style.display = ok ? 'block' : 'none';
+  // Mobile top bar
+  document.getElementById('mobDriveDot').className = 'drive-dot' + (ok ? ' on' : '');
+  document.getElementById('mobDriveTxt').textContent = ok ? 'Drive conectado' : 'Drive desconectado';
+  document.getElementById('mobBtnConn').style.display = ok ? 'none' : 'block';
+  document.getElementById('mobDriveActions').style.display = ok ? 'flex' : 'none';
 }
 
 // ============================================================
@@ -850,6 +872,7 @@ function addCredit() {
   credits.push({ id: Date.now(), nombre, categoria: cat, almacen: alm, fechaCompra: fecha, mesInicio, montoTotal: total, cuotas, montoCuota: total / cuotas });
   saveLocal(); document.getElementById('cFok').classList.add('on'); setTimeout(() => document.getElementById('cFok').classList.remove('on'), 3000);
   toast('Crédito: ' + nombre); updateCreditos(); renderTable(); clearCreditForm();
+  if (accessToken) saveToDrive();
 }
 function clearCreditForm() { ['cNombre', 'cTotal', 'cCuotas', 'cCalc'].forEach(id => { document.getElementById(id).value = ''; }); }
 function deleteCredit(id) {
@@ -947,6 +970,7 @@ function addMov() {
   toast('✓ ' + det + ' — ' + ars(val));
   document.getElementById('aFok').classList.add('on'); setTimeout(() => document.getElementById('aFok').classList.remove('on'), 3000);
   render(); clearAddForm();
+  if (accessToken) saveToDrive();
 }
 function clearAddForm() { document.getElementById('aDet').value = ''; document.getElementById('aVal').value = ''; }
 function addAcc() {
@@ -976,6 +1000,7 @@ function quickAdd() {
   toast('✓ ' + det + ' — ' + ars(val));
   document.getElementById('qaVal').value = ''; document.getElementById('qaDet').value = '';
   closeQuickAdd(); render();
+  if (accessToken) saveToDrive();
 }
 
 // ============================================================
