@@ -41,9 +41,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .page-title{font-size:20px;font-weight:600;letter-spacing:-.4px;}
 .page-sub{font-size:12px;color:var(--t3);margin-top:2px;}
 .hc{display:flex;gap:10px;align-items:center;}
-select,input[type=text],input[type=number],input[type=date],input[type=month]{background:var(--bg3);border:1px solid var(--b2);color:var(--t);border-radius:8px;padding:7px 12px;font-size:13px;outline:none;}
+select,input[type=text],input[type=number],input[type=date],input[type=month]{background:var(--bg2);border:1px solid var(--b2);color:var(--t);border-radius:8px;padding:7px 12px;font-size:13px;outline:none;}
 select:focus,input:focus{border-color:var(--teal);}
-option{background:var(--bg3);color:var(--t);}
+option{background:var(--bg2);}
 .kg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
 .kg3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
 .kcard{background:var(--bg2);border:1px solid var(--b);border-radius:14px;padding:16px 18px;}
@@ -140,7 +140,7 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
 .amt-input::placeholder{color:var(--t3);}
 .srow{margin-bottom:14px;}
 .srow label{display:block;font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
-.srow select,.srow input[type=text]{width:100%;background:var(--bg3);border:1.5px solid var(--b2);color:var(--t);border-radius:8px;padding:10px 14px;font-size:16px;outline:none;}
+.srow select,.srow input[type=text]{width:100%;background:var(--bg);border:1px solid var(--b2);color:var(--t);border-radius:8px;padding:10px 14px;font-size:16px;outline:none;}
 .sbtns{display:flex;gap:12px;margin-top:20px;}
 .ssave{flex:1;padding:14px;background:var(--teal);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;}
 .scancel{padding:14px 20px;background:var(--bg3);color:var(--t2);border:none;border-radius:12px;font-size:16px;cursor:pointer;}
@@ -199,10 +199,6 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
-.acc-item{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg3);border-radius:10px;font-size:13px;}
-.acc-item span{flex:1;color:var(--t);}
-.acc-item button{background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px;font-size:13px;color:var(--t3);}
-.acc-item button:hover{background:var(--b2);color:var(--t);}
 .rev-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:450;align-items:center;justify-content:center;padding:20px;display:none;}
 .rev-bg.on{display:flex;}
 .rev-card{background:var(--bg2);border:1px solid var(--b2);border-radius:20px;padding:32px;max-width:560px;width:100%;max-height:85vh;display:flex;flex-direction:column;}
@@ -545,7 +541,7 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
         <div class="fsuc" id="accSuc">✓ Cuenta agregada</div>
         <div class="divider"></div>
         <div style="font-size:13px;font-weight:500;margin-bottom:10px">Cuentas registradas</div>
-        <div id="accListEl" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div id="accListEl" style="display:flex;flex-wrap:wrap;gap:8px"></div>
       </div>
     </div>
   </div>
@@ -725,14 +721,6 @@ function inferCats(){
   if(accounts.length===0){const s=new Set(movements.map(r=>gAcc(r)).filter(Boolean));accounts=[...s];}
 }
 
-
-// ── Normalize legacy ──
-function normalizeLegacy(){
-  movements=movements.map(r=>{
-    if(!Array.isArray(r))return r;
-    return{id:gid(),date:r[0],category:r[1],detail:r[2]||'',account:r[3],amount:r[4],type:r[5]==='credit'?'credit':'expense'};
-  });
-}
 // ── Legacy review ──
 let _legacyPendingFn=null;
 function applyLoadedData(p){
@@ -741,7 +729,6 @@ function applyLoadedData(p){
   if(p.credits&&Array.isArray(p.credits))credits=p.credits;
   if(p.accounts&&Array.isArray(p.accounts)&&p.accounts.length>0)accounts=p.accounts;
   if(p.categories&&Array.isArray(p.categories)&&p.categories.length>0)categories=p.categories;
-  normalizeLegacy();
 }
 function handleLoadedData(p,fn){
   applyLoadedData(p);
@@ -920,7 +907,7 @@ function getMonths(){
   return[...s].sort();
 }
 function getCredMovs(){
-  const t=[];credits.forEach(c=>{for(let i=0;i<c.cuotas;i++){const[y,m]=c.mesInicio.split('-').map(Number);const d=new Date(y,m-1+i,10);const ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');t.push([ym+'-10',c.categoria,c.nombre+' (cuota '+(i+1)+'/'+c.cuotas+')',c.account||c.almacen||"",c.montoCuota,'credit',c.id]);}});return t;
+  const t=[];credits.forEach(c=>{for(let i=0;i<c.cuotas;i++){const[y,m]=c.mesInicio.split('-').map(Number);const d=new Date(y,m-1+i,10);const ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');t.push([ym+'-10',c.categoria,c.nombre+' (cuota '+(i+1)+'/'+c.cuotas+')',c.account||c.almacen,c.montoCuota,'credit',c.id]);}});return t;
 }
 function allMovs(){return[...movements,...getCredMovs()];}
 function fByPer(rows,per){if(!per||per==='all')return rows;return rows.filter(r=>gDate(r).startsWith(per));}
@@ -1011,14 +998,11 @@ function updateEgresos(){
 
 // ── Category detail ──
 function populateCatSel(){
-  // catSel (drill-down): only categories with actual expense movements
-  const movCats=[...new Set(allMovs().filter(isExp).map(r=>gCat(r)))].sort();
+  const cats=[...new Set(allMovs().filter(isExp).map(r=>gCat(r)))].sort();
   const sel=document.getElementById('catSel');const cur=sel.value;
-  sel.innerHTML='<option value="">— Elegir categoría —</option>'+movCats.map(c=>'<option>'+c+'</option>').join('');
-  if(cur&&movCats.includes(cur))sel.value=cur;
-  // qCat (quick sheet): all expense categories from categories array
-  const qcats=categories.filter(c=>c.type==='expense').map(c=>c.name).sort();
-  const qs=document.getElementById('qCat');if(qs)qs.innerHTML=qcats.map(c=>'<option>'+c+'</option>').join('');
+  sel.innerHTML='<option value="">— Elegir categoría —</option>'+cats.map(c=>'<option>'+c+'</option>').join('');
+  if(cur&&cats.includes(cur))sel.value=cur;
+  const qs=document.getElementById('qCat');if(qs)qs.innerHTML=cats.map(c=>'<option>'+c+'</option>').join('');
 }
 function updateCatDetail(){
   const cat=document.getElementById('catSel').value;const per=document.getElementById('catPf').value;
@@ -1083,7 +1067,7 @@ function updateCreditos(){
   document.getElementById('credListSub').textContent=credits.length+' crédito'+(credits.length!==1?'s':'');
   document.getElementById('credList').innerHTML=!has?'<div style="padding:20px;text-align:center;color:var(--t3);font-size:13px">Sin créditos activos</div>':
     credits.map(c=>{const txns=cm.filter(r=>r[6]===c.id);const paid=txns.filter(r=>gDate(r).slice(0,7)<=cur).length;const pct=Math.round(paid/c.cuotas*100);const rem=(c.cuotas-paid)*c.montoCuota;
-      return'<div class="cred-card"><div class="cred-h"><div><div class="cred-name">'+c.nombre+'</div><div class="cred-meta">'+c.categoria+' · '+(c.account||c.almacen||"")+' · '+ml(c.mesInicio)+'</div></div><div class="cred-right"><div class="cred-total">'+ars(c.montoTotal)+'</div><div class="cred-rem">Restante: '+ars(rem)+'</div><button class="cred-del" onclick="delCredit(\''+ c.id +'\')">×</button></div></div><div class="prog-bg"><div class="prog-fill" style="width:'+pct+'%"></div></div><div class="prog-labels"><span>'+paid+'/'+c.cuotas+' cuotas · '+pct+'%</span><span>'+ars(c.montoCuota)+'/mes</span></div></div>';}).join('');
+      return'<div class="cred-card"><div class="cred-h"><div><div class="cred-name">'+c.nombre+'</div><div class="cred-meta">'+c.categoria+' · '+(c.account||c.almacen)+' · '+ml(c.mesInicio)+'</div></div><div class="cred-right"><div class="cred-total">'+ars(c.montoTotal)+'</div><div class="cred-rem">Restante: '+ars(rem)+'</div><button class="cred-del" onclick="delCredit(\''+ c.id +'\')">×</button></div></div><div class="prog-bg"><div class="prog-fill" style="width:'+pct+'%"></div></div><div class="prog-labels"><span>'+paid+'/'+c.cuotas+' cuotas · '+pct+'%</span><span>'+ars(c.montoCuota)+'/mes</span></div></div>';}).join('');
 }
 
 // ── Movements table ──
@@ -1166,38 +1150,7 @@ function addAccFromForm(){
   accounts.push(name);saveLocal();document.getElementById('aAccName').value='';document.getElementById('accSuc').classList.add('on');setTimeout(()=>document.getElementById('accSuc').classList.remove('on'),2000);
   populateAllAccSels();renderAccList();toast('Cuenta agregada: '+name);
 }
-function renderAccList(){
-  document.getElementById('accListEl').innerHTML=accounts.map((a,i)=>
-    '<div class="acc-item">'
-    +'<span>'+escHtml(a)+'</span>'
-    +'<button onclick="renameAcc('+i+')" title="Renombrar">✏</button>'
-    +'<button onclick="deleteAcc('+i+')" title="Eliminar" style="color:var(--coral)">×</button>'
-    +'</div>'
-  ).join('');
-}
-function renameAcc(i){
-  const old=accounts[i];
-  const box=document.getElementById('accListEl').children[i];
-  const span=box.querySelector('span');
-  const inp=document.createElement('input');
-  inp.type='text';inp.value=old;inp.style.cssText='flex:1;background:transparent;border:none;border-bottom:1.5px solid var(--teal);color:var(--t);outline:none;font-size:13px;';
-  span.replaceWith(inp);inp.focus();inp.select();
-  const commit=()=>{
-    const nv=inp.value.trim();if(!nv||nv===old){renderAccList();return;}
-    if(accounts.includes(nv)&&nv!==old){showAlert('Ya existe','Ya tenés una cuenta con ese nombre.');renderAccList();return;}
-    movements.forEach(r=>{if(!Array.isArray(r)&&r.account===old)r.account=nv;});
-    credits.forEach(c=>{if(c.account===old)c.account=nv;if(c.almacen===old)c.almacen=nv;});
-    accounts[i]=nv;saveLocal();populateAllAccSels();renderAccList();toast('Cuenta renombrada: '+nv);autoSave();
-  };
-  inp.addEventListener('blur',commit);
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape'){renderAccList();}});
-}
-function deleteAcc(i){
-  const name=accounts[i];
-  const usedIn=movements.filter(r=>gAcc(r)===name).length;
-  const msg=usedIn>0?'Tenés '+usedIn+' movimiento(s) con esta cuenta. ¿Eliminar la cuenta de todas formas?':'¿Eliminar la cuenta "'+name+'"?';
-  showConfirm('Eliminar cuenta',msg,()=>{accounts.splice(i,1);saveLocal();populateAllAccSels();renderAccList();toast('Cuenta eliminada: '+name);autoSave();});
-}
+function renderAccList(){document.getElementById('accListEl').innerHTML=accounts.map(a=>'<div style="padding:4px 12px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--t2)">'+a+'</div>').join('');}
 
 // ── Quick add (mobile) ──
 function openSheet(){document.getElementById('sheetBg').classList.add('on');document.getElementById('qAmt').focus();}
