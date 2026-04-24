@@ -199,6 +199,19 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
+.tc-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:rgba(55,138,221,.15);color:var(--blue2);margin-left:6px;vertical-align:middle;}
+.tc-debt{color:var(--coral2)!important;}
+.tc-meta{font-size:11px;color:var(--t3);margin-top:2px;}
+.acc-section-title{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--b);}
+.pay-preview{background:var(--bg);border:1px solid var(--b2);border-radius:10px;padding:14px 16px;margin:14px 0;font-size:13px;display:none;}
+.pay-preview.on{display:block;}
+.pay-row{display:flex;justify-content:space-between;padding:4px 0;color:var(--t2);}
+.pay-row.total{border-top:1px solid var(--b2);margin-top:6px;padding-top:10px;font-weight:500;color:var(--t);}
+.pay-row.cost{color:var(--coral2);}
+.pay-row.debt{color:var(--coral);}
+.pay-row.favor{color:var(--teal2);}
+.limit-bar-bg{height:3px;background:var(--bg3);border-radius:2px;margin-top:4px;overflow:hidden;}
+.limit-bar-fill{height:100%;border-radius:2px;transition:width .3s;}
 .acc-item{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg3);border-radius:10px;font-size:13px;}
 .acc-item span{flex:1;color:var(--t);}
 .acc-item button{background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px;font-size:13px;color:var(--t3);}
@@ -497,6 +510,7 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
     <div class="stabs">
       <div class="stab active" onclick="showStab('aMov',this)">Nuevo Movimiento</div>
       <div class="stab" onclick="showStab('aTransfer',this)">Transferencia</div>
+      <div class="stab" onclick="showStab('aPayTC',this)">Pagar tarjeta</div>
       <div class="stab" onclick="showStab('aAcc',this)">Cuentas</div>
     </div>
     <div id="aMov" class="spanel active">
@@ -537,14 +551,52 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
         <div class="fsuc" id="trSuc">✓ Transferencia registrada</div>
       </div>
     </div>
+    <div id="aPayTC" class="spanel">
+      <div class="fcard">
+        <div class="ftitle">Registrar pago de tarjeta</div>
+        <div class="notebox">Ingresá los datos del resumen. El sistema calcula el costo implícito (cargos, intereses, impuestos) como diferencia entre el total del resumen y el consumo que tenés registrado.</div>
+        <div class="fr2">
+          <div><label>Tarjeta</label><select id="ptCard" onchange="updatePayPreview()"></select></div>
+          <div><label>Cuenta origen</label><select id="ptFrom" onchange="updatePayPreview()"></select></div>
+        </div>
+        <div class="fr2">
+          <div><label>Próxima fecha de cierre</label><input type="date" id="ptNextClose" oninput="updatePayPreview()"></div>
+          <div><label>Monto total del resumen</label><input type="number" id="ptTotal" placeholder="0" min="0" oninput="updatePayPreview()"></div>
+        </div>
+        <div class="fr"><label>Monto a abonar</label><input type="number" id="ptPagar" placeholder="0" min="0" oninput="updatePayPreview()"></div>
+        <div class="pay-preview" id="payPreview">
+          <div class="pay-row"><span>Período cubierto</span><span id="ppPeriod">—</span></div>
+          <div class="pay-row"><span>Consumo registrado en el período</span><span id="ppConsumo">—</span></div>
+          <div class="pay-row total"><span>Total del resumen</span><span id="ppTotal">—</span></div>
+          <div class="pay-row cost" id="ppCostRow"><span>Costo implícito (auto)</span><span id="ppCosto">—</span></div>
+          <div class="pay-row" id="ppDebtRow"><span id="ppDebtLabel">—</span><span id="ppDebt">—</span></div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn btn-p" onclick="registerCardPayment()">✓ Registrar pago</button>
+          <button class="btn btn-s" onclick="clearPayTC()">Limpiar</button>
+        </div>
+        <div class="fsuc" id="ptSuc">✓ Pago registrado</div>
+      </div>
+    </div>
     <div id="aAcc" class="spanel">
       <div class="fcard">
         <div class="ftitle">Gestionar cuentas</div>
-        <div class="fr"><label>Nombre de la nueva cuenta</label><input type="text" id="aAccName" placeholder="Ej: Naranja X, BBVA..."></div>
-        <div style="margin-top:16px"><button class="btn btn-p" onclick="addAccFromForm()">+ Agregar cuenta</button></div>
+        <div class="acc-section-title">Cuenta normal</div>
+        <div class="fr"><label>Nombre</label><input type="text" id="aAccName" placeholder="Ej: Galicia, Mercado Pago, Efectivo..."></div>
+        <div style="margin-top:12px"><button class="btn btn-p" onclick="addAccFromForm()">+ Agregar cuenta</button></div>
         <div class="fsuc" id="accSuc">✓ Cuenta agregada</div>
-        <div class="divider"></div>
-        <div style="font-size:13px;font-weight:500;margin-bottom:10px">Cuentas registradas</div>
+        <div class="acc-section-title">Tarjeta de crédito</div>
+        <div class="fr2">
+          <div><label>Nombre de la tarjeta</label><input type="text" id="tcName" placeholder="Ej: Naranja X TC, VISA Galicia..."></div>
+          <div><label>Banco / emisor <span style="color:var(--t3)">(opcional)</span></label><input type="text" id="tcBank" placeholder="Ej: Naranja X, Galicia..."></div>
+        </div>
+        <div class="fr2">
+          <div><label>Límite <span style="color:var(--t3)">(opcional)</span></label><input type="number" id="tcLimit" placeholder="0" min="0"></div>
+          <div><label>Fecha primer cierre</label><input type="date" id="tcFirstClose"></div>
+        </div>
+        <div style="margin-top:12px"><button class="btn btn-p" onclick="addCardAccount()">+ Agregar tarjeta de crédito</button></div>
+        <div class="fsuc" id="tcSuc">✓ Tarjeta agregada</div>
+        <div class="acc-section-title">Cuentas registradas</div>
         <div id="accListEl" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
     </div>
@@ -618,7 +670,7 @@ const PRESETS={
   }
 };
 
-let movements=[],credits=[],accounts=[],categories=[];
+let movements=[],credits=[],accounts=[],categories=[],accountMeta={};
 let charts={},filteredMovs=[],curPage=0;
 const PG=25;
 let chartjsReady=false,editingId=null;
@@ -675,6 +727,7 @@ function saveLocal(){
   try{localStorage.setItem('fp_credits',JSON.stringify(credits));}catch(e){}
   try{localStorage.setItem('fp_accounts',JSON.stringify(accounts));}catch(e){}
   try{localStorage.setItem('fp_categories',JSON.stringify(categories));}catch(e){}
+  try{localStorage.setItem('fp_accountMeta',JSON.stringify(accountMeta));}catch(e){}
 }
 function loadLocal(){
   try{const d=localStorage.getItem('fp_movements');if(d){const p=JSON.parse(d);if(Array.isArray(p))movements=p;}}catch(e){localStorage.removeItem('fp_movements');}
@@ -682,9 +735,10 @@ function loadLocal(){
   try{const d=localStorage.getItem('fp_credits');if(d){const p=JSON.parse(d);if(Array.isArray(p))credits=p;}}catch(e){localStorage.removeItem('fp_credits');}
   try{const d=localStorage.getItem('fp_accounts');if(d){const p=JSON.parse(d);if(Array.isArray(p)&&p.length>0)accounts=p;}}catch(e){localStorage.removeItem('fp_accounts');}
   try{const d=localStorage.getItem('fp_categories');if(d){const p=JSON.parse(d);if(Array.isArray(p)&&p.length>0)categories=p;}}catch(e){localStorage.removeItem('fp_categories');}
+  try{const d=localStorage.getItem('fp_accountMeta');if(d){const p=JSON.parse(d);if(p&&typeof p==='object')accountMeta=p;}}catch(e){localStorage.removeItem('fp_accountMeta');}
 }
 function exportJSON(){
-  const ts=tod();const b=new Blob([JSON.stringify({version:2,movements,credits,accounts,categories},null,2)],{type:'application/json'});
+  const ts=tod();const b=new Blob([JSON.stringify({version:2,movements,credits,accounts,categories,accountMeta},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='finanzas_'+ts+'.json';a.click();
   toast('Exportado: finanzas_'+ts+'.json');
 }
@@ -741,6 +795,7 @@ function applyLoadedData(p){
   if(p.credits&&Array.isArray(p.credits))credits=p.credits;
   if(p.accounts&&Array.isArray(p.accounts)&&p.accounts.length>0)accounts=p.accounts;
   if(p.categories&&Array.isArray(p.categories)&&p.categories.length>0)categories=p.categories;
+  if(p.accountMeta&&typeof p.accountMeta==='object')accountMeta=p.accountMeta;
   normalizeLegacy();
 }
 function handleLoadedData(p,fn){
@@ -822,7 +877,7 @@ async function loadFromDrive(){
 }
 async function saveToDrive(){
   if(!accessToken){toast('Conectá Drive primero.',true);return;}
-  const blob=new Blob([JSON.stringify({version:2,movements,credits,accounts,categories})],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({version:2,movements,credits,accounts,categories,accountMeta})],{type:'application/json'});
   try{
     const fd=new FormData();
     fd.append('metadata',new Blob([JSON.stringify({name:'finanzas_datos.json'})],{type:'application/json'}));
@@ -984,7 +1039,18 @@ function updAccBars(){
     if(sign!==0)totals[gAcc(r)]=(totals[gAcc(r)]||0)+sign*gAmt(r);
   });
   const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);const max=Math.max(...sorted.map(e=>Math.abs(e[1])),1);
-  document.getElementById('accBars').innerHTML=sorted.map(([name,val])=>'<div class="brow"><div class="bh"><span class="bn">'+name+'</span><span class="bv" style="color:'+(val>=0?'var(--teal2)':'var(--coral2)')+'">'+ars(val)+'</span></div><div class="bbg"><div class="bf" style="width:'+(Math.max(0,Math.abs(val)/max*100).toFixed(1))+'%;background:'+(val>=0?'var(--teal)':'var(--coral)')+'"></div></div></div>').join('');
+  document.getElementById('accBars').innerHTML=sorted.map(([name,val])=>{
+    const isTC=isCardAcc(name);const meta=getCardMeta(name);
+    const badge=isTC?'<span class="tc-badge">TC</span>':'';
+    const valColor=val>=0?'var(--teal2)':'var(--coral2)';
+    let limitBar='';
+    if(isTC&&meta.limit>0){
+      const debt=Math.max(0,-val);const pct=Math.min(100,debt/meta.limit*100);
+      const lcolor=pct>80?'var(--coral)':pct>50?'var(--amber2)':'var(--teal)';
+      limitBar='<div class="limit-bar-bg"><div class="limit-bar-fill" style="width:'+pct.toFixed(1)+'%;background:'+lcolor+'"></div></div>';
+    }
+    return '<div class="brow"><div class="bh"><span class="bn">'+name+badge+'</span><span class="bv" style="color:'+valColor+'">'+ars(val)+'</span></div><div class="bbg"><div class="bf" style="width:'+(Math.max(0,Math.abs(val)/max*100).toFixed(1))+'%;background:'+(val>=0?'var(--teal)':'var(--coral)')+'"></div></div>'+limitBar+'</div>';
+  }).join('');
 }
 function updTop6(fil){
   const bc={};fil.filter(isExp).forEach(r=>{bc[gCat(r)]=(bc[gCat(r)]||0)+gAmt(r);});
@@ -1009,6 +1075,38 @@ function updateEgresos(){
   document.getElementById('egRank').innerHTML=ranked.map(([name,val],i)=>'<div class="crow2"><div class="ch"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--t3);width:16px;text-align:right">'+(i+1)+'</span><span class="cn">'+name+'</span></div><span class="ca">'+ars(val)+'</span></div><div class="cbg"><div class="cbf" style="width:'+(val/maxV*100).toFixed(1)+'%;background:'+COLS[i%COLS.length]+'"></div></div></div>').join('');
 }
 
+
+// ── Card account helpers ──
+function isCardAcc(name){return !!(accountMeta[name]&&accountMeta[name].isCard);}
+function getCardMeta(name){return accountMeta[name]||{};}
+function cardAccounts(){return accounts.filter(isCardAcc);}
+function normalAccounts(){return accounts.filter(a=>!isCardAcc(a));}
+
+function addCardAccount(){
+  const name=document.getElementById('tcName').value.trim();
+  if(!name){showAlert('Nombre requerido','Ingresá un nombre para la tarjeta.');return;}
+  if(accounts.includes(name)){showAlert('Ya existe','Ya tenés una cuenta con ese nombre.');return;}
+  const bank=document.getElementById('tcBank').value.trim();
+  const limit=parseFloat(document.getElementById('tcLimit').value)||0;
+  const firstClose=document.getElementById('tcFirstClose').value;
+  accounts.push(name);
+  accountMeta[name]={isCard:true,bank,limit,lastClose:firstClose};
+  // Auto-create cost category
+  const costCat='Costos '+name;
+  if(!categories.find(c=>c.name===costCat))categories.push({name:costCat,type:'expense'});
+  saveLocal();
+  document.getElementById('tcName').value='';document.getElementById('tcBank').value='';
+  document.getElementById('tcLimit').value='';document.getElementById('tcFirstClose').value='';
+  document.getElementById('tcSuc').classList.add('on');setTimeout(()=>document.getElementById('tcSuc').classList.remove('on'),2500);
+  populateAllAccSels();populateCardSels();renderAccList();toast('Tarjeta agregada: '+name);autoSave();
+}
+function populateCardSels(){
+  const cards=cardAccounts();const normals=normalAccounts();
+  const ptCard=document.getElementById('ptCard');
+  if(ptCard){ptCard.innerHTML=cards.length?cards.map(c=>'<option>'+c+'</option>').join(''):'<option value="">— Sin tarjetas TC —</option>';}
+  const ptFrom=document.getElementById('ptFrom');
+  if(ptFrom){ptFrom.innerHTML=normals.map(c=>'<option>'+c+'</option>').join('');}
+}
 // ── Category detail ──
 function populateCatSel(){
   // catSel (drill-down): only categories with actual expense movements
@@ -1052,6 +1150,91 @@ function addCredit(){
   credits.push({id:gid(),nombre:name,categoria:cat,account:acc,almacen:acc,fechaCompra:date,mesInicio:start,montoTotal:total,cuotas:n,montoCuota:total/n});
   saveLocal();document.getElementById('cSuc').classList.add('on');setTimeout(()=>document.getElementById('cSuc').classList.remove('on'),3000);
   toast('Crédito: '+name);updateCreditos();renderMovs();clearCreditForm();autoSave();
+}
+
+// ── Pay TC ──
+function updatePayPreview(){
+  const card=document.getElementById('ptCard').value;
+  const nextClose=document.getElementById('ptNextClose').value;
+  const total=parseFloat(document.getElementById('ptTotal').value)||0;
+  const pagar=parseFloat(document.getElementById('ptPagar').value)||0;
+  const box=document.getElementById('payPreview');
+  if(!card||!nextClose||!total){box.classList.remove('on');return;}
+  const meta=getCardMeta(card);
+  const lastClose=meta.lastClose||'';
+  // Period label
+  const periodLabel=lastClose?(fmtD(lastClose)+' → '+fmtD(nextClose)):'hasta '+fmtD(nextClose);
+  document.getElementById('ppPeriod').textContent=periodLabel;
+  // Consumo: all movements for this card in the period
+  const all=allMovs();
+  const consumo=all.filter(r=>{
+    const d=gDate(r);const acc=gAcc(r);
+    if(acc!==card)return false;
+    if(lastClose&&d<=lastClose)return false;
+    if(d>nextClose)return false;
+    // Exclude incoming transfers (transferDir=in) and payment-generated costs
+    if(getTransferDir(r)==='in')return false;
+    const cat=gCat(r);if(cat==='Costos '+card)return false;
+    return true;
+  }).reduce((s,r)=>s+gAmt(r),0);
+  document.getElementById('ppConsumo').textContent=ars(consumo);
+  document.getElementById('ppTotal').textContent=ars(total);
+  const costo=Math.max(0,total-consumo);
+  const ppCostRow=document.getElementById('ppCostRow');
+  ppCostRow.style.display=costo>0?'':'none';
+  document.getElementById('ppCosto').textContent=costo>0?'+ '+ars(costo):'—';
+  const diff=pagar-total;
+  const debtRow=document.getElementById('ppDebtRow');
+  if(pagar>0){
+    debtRow.style.display='';
+    if(diff<0){debtRow.className='pay-row debt';document.getElementById('ppDebtLabel').textContent='Deuda pendiente';document.getElementById('ppDebt').textContent=ars(Math.abs(diff));}
+    else if(diff>0){debtRow.className='pay-row favor';document.getElementById('ppDebtLabel').textContent='Saldo a favor';document.getElementById('ppDebt').textContent=ars(diff);}
+    else{debtRow.style.display='none';}
+  } else{debtRow.style.display='none';}
+  box.classList.add('on');
+}
+function fmtD(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
+function registerCardPayment(){
+  const card=document.getElementById('ptCard').value;
+  const from=document.getElementById('ptFrom').value;
+  const nextClose=document.getElementById('ptNextClose').value;
+  const total=parseFloat(document.getElementById('ptTotal').value)||0;
+  const pagar=parseFloat(document.getElementById('ptPagar').value)||0;
+  if(!card||!from||!nextClose||!total||!pagar){showAlert('Campos incompletos','Completá todos los campos.');return;}
+  if(card===from){showAlert('Error','La tarjeta y la cuenta origen no pueden ser la misma.');return;}
+  ensureTransferCat();const grp=gid();const date=nextClose;
+  // 1. Transfer out from origin
+  movements.push({id:gid(),date,category:'Transferencia entre cuentas',detail:'Pago resumen '+card,account:from,amount:pagar,type:'adjustment',transferDir:'out',transferGroup:grp});
+  // 2. Transfer in to TC
+  movements.push({id:gid(),date,category:'Transferencia entre cuentas',detail:'Pago resumen '+card,account:card,amount:pagar,type:'adjustment',transferDir:'in',transferGroup:grp});
+  // 3. Implicit cost if any
+  const meta=getCardMeta(card);
+  const all=allMovs();
+  const consumo=all.filter(r=>{
+    const d=gDate(r);const acc=gAcc(r);
+    if(acc!==card)return false;
+    if(meta.lastClose&&d<=meta.lastClose)return false;
+    if(d>nextClose)return false;
+    if(getTransferDir(r)==='in')return false;
+    const cat=gCat(r);if(cat==='Costos '+card)return false;
+    return true;
+  }).reduce((s,r)=>s+gAmt(r),0);
+  const costo=Math.max(0,total-consumo);
+  if(costo>0){
+    const costCat='Costos '+card;
+    if(!categories.find(c=>c.name===costCat))categories.push({name:costCat,type:'expense'});
+    movements.push({id:gid(),date,category:costCat,detail:'Cargos/intereses '+card,account:card,amount:costo,type:'expense'});
+  }
+  // Update lastClose
+  accountMeta[card]={...meta,lastClose:nextClose};
+  saveLocal();render();
+  document.getElementById('payPreview').classList.remove('on');
+  document.getElementById('ptSuc').classList.add('on');setTimeout(()=>document.getElementById('ptSuc').classList.remove('on'),3000);
+  toast('✓ Pago registrado — '+card+' — '+ars(pagar));autoSave();
+}
+function clearPayTC(){
+  ['ptTotal','ptPagar'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('payPreview').classList.remove('on');
 }
 // ── Transfers ──
 function ensureTransferCat(){if(!categories.find(c=>c.name==='Transferencia entre cuentas'))categories.push({name:'Transferencia entre cuentas',type:'adjustment'});}
@@ -1167,13 +1350,16 @@ function addAccFromForm(){
   populateAllAccSels();renderAccList();toast('Cuenta agregada: '+name);
 }
 function renderAccList(){
-  document.getElementById('accListEl').innerHTML=accounts.map((a,i)=>
-    '<div class="acc-item">'
-    +'<span>'+escHtml(a)+'</span>'
-    +'<button onclick="renameAcc('+i+')" title="Renombrar">✏</button>'
-    +'<button onclick="deleteAcc('+i+')" title="Eliminar" style="color:var(--coral)">×</button>'
-    +'</div>'
-  ).join('');
+  document.getElementById('accListEl').innerHTML=accounts.map((a,i)=>{
+    const isTC=isCardAcc(a);const meta=getCardMeta(a);
+    const badge=isTC?'<span class="tc-badge">TC</span>':'';
+    const sub=isTC?'<div class="tc-meta">'+(meta.bank?meta.bank+' · ':'')+(meta.limit?'Límite '+ars(meta.limit)+' · ':'')+(meta.lastClose?'Último cierre: '+fmtD(meta.lastClose):'Sin cierre registrado')+'</div>':'';
+    return '<div class="acc-item"><div style="flex:1"><div>'+escHtml(a)+badge+'</div>'+sub+'</div>'
+      +(isTC?'':'')
+      +'<button onclick="renameAcc('+i+')" title="Renombrar">✏</button>'
+      +'<button onclick="deleteAcc('+i+')" title="Eliminar" style="color:var(--coral)">×</button>'
+      +'</div>';
+  }).join('');
 }
 function renameAcc(i){
   const old=accounts[i];
@@ -1187,7 +1373,8 @@ function renameAcc(i){
     if(accounts.includes(nv)&&nv!==old){showAlert('Ya existe','Ya tenés una cuenta con ese nombre.');renderAccList();return;}
     movements.forEach(r=>{if(!Array.isArray(r)&&r.account===old)r.account=nv;});
     credits.forEach(c=>{if(c.account===old)c.account=nv;if(c.almacen===old)c.almacen=nv;});
-    accounts[i]=nv;saveLocal();populateAllAccSels();renderAccList();toast('Cuenta renombrada: '+nv);autoSave();
+    if(accountMeta[old]){accountMeta[nv]=accountMeta[old];delete accountMeta[old];}
+    accounts[i]=nv;saveLocal();populateAllAccSels();populateCardSels();renderAccList();toast('Cuenta renombrada: '+nv);autoSave();
   };
   inp.addEventListener('blur',commit);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape'){renderAccList();}});
@@ -1196,7 +1383,7 @@ function deleteAcc(i){
   const name=accounts[i];
   const usedIn=movements.filter(r=>gAcc(r)===name).length;
   const msg=usedIn>0?'Tenés '+usedIn+' movimiento(s) con esta cuenta. ¿Eliminar la cuenta de todas formas?':'¿Eliminar la cuenta "'+name+'"?';
-  showConfirm('Eliminar cuenta',msg,()=>{accounts.splice(i,1);saveLocal();populateAllAccSels();renderAccList();toast('Cuenta eliminada: '+name);autoSave();});
+  showConfirm('Eliminar cuenta',msg,()=>{accounts.splice(i,1);delete accountMeta[name];saveLocal();populateAllAccSels();populateCardSels();renderAccList();toast('Cuenta eliminada: '+name);autoSave();});
 }
 
 // ── Quick add (mobile) ──
@@ -1235,6 +1422,7 @@ function render(){
   buildAllPers();populateCatSel();populateAllAccSels();populateCreditCats();populateMovFilters();updateAddCats();renderAccList();
   document.getElementById('aDate').value=tod();document.getElementById('cDate').value=tod();document.getElementById('cStart').value=nextM(thisM());
   document.getElementById('trDate').value=tod();populateSel('trFrom',accounts);populateSel('trTo',accounts);
+  populateCardSels();document.getElementById('ptNextClose').value='';
   try{updateResumen();}catch(e){console.error(e);}try{renderMovs();}catch(e){console.error(e);}try{updateCreditos();}catch(e){console.error(e);}
 }
 
