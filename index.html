@@ -698,14 +698,22 @@ function importJSON(el){
   reader.readAsText(file);
 }
 function inferCats(){
-  const IW=['salario','sueldo','salary','cobro','honorario','dividendo','renta','bono','freelance','inversion','inversión','ingreso','income','sueldo'];
-  const AW=['ajuste','transferencia','transfer','traspaso','adelanto'];
+  // Income words — covers standard names + Argentine naming (haberes, devolucion, etc.)
+  const IW=['salario','sueldo','salary','cobro','honorario','dividendo','renta','bono','freelance',
+            'inversion','inversión','ingreso','income','haberes','devolucion','devolución',
+            'reintegro','cashback','bonificacion','bonificación','reembolso','comision','comisión'];
+  // Adjustment words — 'adelanto' removed: "adelanto haberes" es ingreso, no ajuste
+  const AW=['ajuste','transferencia','transfer','traspaso'];
   const cm={};
   movements.forEach(r=>{
     const cat=gCat(r);if(!cm[cat]){
       const lc=cat.toLowerCase();
-      const isA=AW.some(w=>lc.includes(w))||lc.startsWith('ing. de ajuste')||lc.startsWith('egr. de ajuste')||lc.startsWith('ing.de ajuste')||lc.startsWith('egr.de ajuste');
-      const isI=!isA&&IW.some(w=>lc.includes(w));
+      // Explicit legacy adjustment prefixes take priority
+      const isA=AW.some(w=>lc.includes(w))
+        ||lc.startsWith('ing. de ajuste')||lc.startsWith('egr. de ajuste')
+        ||lc.startsWith('ing.de ajuste')||lc.startsWith('egr.de ajuste');
+      // "Ing. x ..." = "Ingreso por ..." → income prefix pattern
+      const isI=!isA&&(IW.some(w=>lc.includes(w))||/^ing\.\s*x\s/.test(lc));
       cm[cat]=isA?'adjustment':isI?'income':'expense';
     }
   });
@@ -724,19 +732,44 @@ function applyLoadedData(p){
 }
 function handleLoadedData(p,fn){
   applyLoadedData(p);
-  if(categories.length===0&&movements.length>0){inferCats();showLegacyReview(fn);}
+  // Force re-review if categories were saved with known-bad inference
+  // (e.g. v7 saved 'Ing. de ajuste' as income, or has no adjustment type at all)
+  const hasAdjType=categories.some(c=>c.type==='adjustment');
+  const hasLegacyAdj=movements.some(r=>{const c=gCat(r).toLowerCase();return c.includes('de ajuste');});
+  const needsReview=categories.length===0||(hasLegacyAdj&&!hasAdjType);
+  if(needsReview&&movements.length>0){inferCats();showLegacyReview(fn);}
   else{fn();}
 }
 function showLegacyReview(fn){
   _legacyPendingFn=fn;
-  document.getElementById('revList').innerHTML=categories.map((c,i)=>
-    '<div class="rev-row"><span>'+escHtml(c.name)+'</span>'
-    +'<select data-i="'+i+'">'
-    +'<option value="income"'+(c.type==='income'?' selected':'')+'>↑ Ingreso</option>'
-    +'<option value="expense"'+(c.type==='expense'?' selected':'')+'>↓ Egreso</option>'
-    +'<option value="adjustment"'+(c.type==='adjustment'?' selected':'')+'>↔ Ajuste</option>'
-    +'</select></div>'
-  ).join('');
+  // Count movements per category
+  const cnt={};movements.forEach(r=>{const c=gCat(r);cnt[c]=(cnt[c]||0)+1;});
+  // Sort: income first, then adjustment, then expense; within each group by count desc
+  const ORDER={income:0,adjustment:1,expense:2};
+  const sorted=[...categories].sort((a,b)=>
+    (ORDER[a.type]??9)-(ORDER[b.type]??9)||((cnt[b.name]||0)-(cnt[a.name]||0)));
+  // Group headers
+  const LABELS={income:'↑ Ingresos',adjustment:'↔ Ajustes / Transferencias entre cuentas',expense:'↓ Egresos'};
+  let lastType=null;
+  const rows=sorted.map((c,_)=>{
+    const i=categories.indexOf(c);
+    const n=cnt[c.name]||0;
+    let header='';
+    if(c.type!==lastType){
+      lastType=c.type;
+      const bg=c.type==='income'?'rgba(29,158,117,.12)':c.type==='adjustment'?'rgba(55,138,221,.1)':'rgba(216,90,48,.08)';
+      const col=c.type==='income'?'var(--teal2)':c.type==='adjustment'?'var(--blue2)':'var(--coral2)';
+      header='<div style="padding:6px 12px 4px;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:'+col+';background:'+bg+';border-radius:6px;margin:8px 0 4px">'+LABELS[c.type]+'</div>';
+    }
+    return header+'<div class="rev-row">'
+      +'<span>'+escHtml(c.name)+'<small style="color:var(--t3);margin-left:6px">'+n+' movs</small></span>'
+      +'<select data-i="'+i+'">'
+      +'<option value="income"'+(c.type==='income'?' selected':'')+'>↑ Ingreso</option>'
+      +'<option value="expense"'+(c.type==='expense'?' selected':'')+'>↓ Egreso</option>'
+      +'<option value="adjustment"'+(c.type==='adjustment'?' selected':'')+'>↔ Ajuste/Transferencia</option>'
+      +'</select></div>';
+  });
+  document.getElementById('revList').innerHTML=rows.join('');
   document.getElementById('revBg').classList.add('on');
 }
 function confirmLegacyReview(){
