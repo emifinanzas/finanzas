@@ -951,6 +951,8 @@ async function loadFromDrive(){
     const r=await fetch('https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media',{headers:{Authorization:'Bearer '+accessToken}});
     if(!r.ok)throw new Error('HTTP '+r.status);
     const p=await r.json();
+    // Reset state completely — Drive always wins over stale localStorage
+    movements=[];credits=[];accounts=[];categories=[];accountMeta={};
     handleLoadedData(p,()=>{saveLocal();render();toast('✓ Datos cargados desde Drive ('+movements.length+' movimientos)');});
   }catch(e){toast('Error al cargar desde Drive: '+e.message,true);}
 }
