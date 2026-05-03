@@ -1083,13 +1083,12 @@ function mkHBar(id,labels,vals){mkChart(id,{type:'bar',data:{labels,datasets:[{d
 function updateResumen(){
   const per=document.getElementById('pf').value;const all=allMovs();const fil=fByPer(all,per);
   const inc=fil.filter(isInc).reduce((s,r)=>s+gAmt(r),0);const exp=fil.filter(isExp).reduce((s,r)=>s+gAmt(r),0);
-  const savInflow=getSavingsInflow(fil);
-  const sav=inc-exp+savInflow;const rate=inc>0?sav/inc*100:0;
+  const sav=inc-exp;const rate=inc>0?sav/inc*100:0;
   document.getElementById('kInc').textContent=ars(inc);document.getElementById('kExp').textContent=ars(exp);
   document.getElementById('kSav').textContent=ars(sav);document.getElementById('kSav').style.color=sav>=0?'var(--teal2)':'var(--coral2)';
   document.getElementById('kRate').textContent=rate.toFixed(1)+'%';
   document.getElementById('kIncN').textContent=fil.filter(isInc).length+' transacciones';
-  document.getElementById('kExpN').textContent=fil.filter(isExp).length+' egresos'+(savInflow>0?' · ahorro +'+ars(savInflow):'');
+  document.getElementById('kExpN').textContent=fil.filter(isExp).length+' egresos';
   document.getElementById('kSavN').textContent=sav>=0?'Superávit':'Déficit';document.getElementById('kSavN').style.color=sav>=0?'var(--teal)':'var(--coral)';
   document.getElementById('kRateN').textContent=rate>=30?'Excelente ↑':rate>=15?'Saludable':'Atención ↓';
   document.getElementById('rSub').textContent=per==='all'?'Todo el período':ml(per)+' '+per.slice(0,4);
