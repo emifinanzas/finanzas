@@ -511,6 +511,7 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
       <div class="stab active" onclick="showStab('aMov',this)">Nuevo Movimiento</div>
       <div class="stab" onclick="showStab('aTransfer',this)">Transferencia</div>
       <div class="stab" onclick="showStab('aPayTC',this)">Pagar tarjeta</div>
+      <div class="stab" onclick="showStab('aCat2',this)">Categorías</div>
       <div class="stab" onclick="showStab('aAcc',this)">Cuentas</div>
     </div>
     <div id="aMov" class="spanel active">
@@ -576,6 +577,23 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
           <button class="btn btn-s" onclick="clearPayTC()">Limpiar</button>
         </div>
         <div class="fsuc" id="ptSuc">✓ Pago registrado</div>
+      </div>
+    </div>
+    <div id="aCat2" class="spanel">
+      <div class="fcard">
+        <div class="ftitle">Gestionar categorías</div>
+        <div class="fr2">
+          <div><label>Nombre</label><input type="text" id="newCatName" placeholder="Ej: Viajes, Freelance..."></div>
+          <div><label>Tipo</label><select id="newCatType">
+            <option value="expense">↓ Egreso</option>
+            <option value="income">↑ Ingreso</option>
+            <option value="adjustment">↔ Ajuste / Transferencia</option>
+          </select></div>
+        </div>
+        <div style="margin-top:12px"><button class="btn btn-p" onclick="addCatFromForm()">+ Agregar categoría</button></div>
+        <div class="fsuc" id="catFormSuc">✓ Categoría agregada</div>
+        <div class="acc-section-title">Categorías registradas</div>
+        <div id="catListEl" style="display:flex;flex-direction:column;gap:5px;margin-top:8px"></div>
       </div>
     </div>
     <div id="aAcc" class="spanel">
@@ -1108,6 +1126,70 @@ function populateCardSels(){
   const ptFrom=document.getElementById('ptFrom');
   if(ptFrom){ptFrom.innerHTML=normals.map(c=>'<option>'+c+'</option>').join('');}
 }
+
+// ── Category management ──
+function addCatFromForm(){
+  const name=document.getElementById('newCatName').value.trim();
+  const type=document.getElementById('newCatType').value;
+  if(!name){showAlert('Nombre requerido','Ingresá un nombre para la categoría.');return;}
+  if(categories.find(c=>c.name===name)){showAlert('Ya existe','Ya tenés una categoría con ese nombre.');return;}
+  categories.push({name,type});
+  saveLocal();
+  document.getElementById('newCatName').value='';
+  document.getElementById('catFormSuc').classList.add('on');
+  setTimeout(()=>document.getElementById('catFormSuc').classList.remove('on'),2500);
+  renderCatList();updateAddCats();populateCatSel();toast('Categoría agregada: '+name);autoSave();
+}
+function renderCatList(){
+  const el=document.getElementById('catListEl');if(!el)return;
+  const TYPE_LABEL={income:'↑ Ingreso',expense:'↓ Egreso',adjustment:'↔ Ajuste'};
+  const TYPE_COLOR={income:'var(--teal2)',expense:'var(--coral2)',adjustment:'var(--blue2)'};
+  const sorted=[...categories].sort((a,b)=>{
+    const o={income:0,expense:1,adjustment:2};return(o[a.type]??9)-(o[b.type]??9)||a.name.localeCompare(b.name);
+  });
+  el.innerHTML=sorted.map(c=>{
+    const i=categories.indexOf(c);
+    const col=TYPE_COLOR[c.type]||'var(--t2)';
+    const lbl=TYPE_LABEL[c.type]||c.type;
+    return '<div class="acc-item">'
+      +'<span style="flex:1">'+escHtml(c.name)+'</span>'
+      +'<span style="font-size:11px;color:'+col+';margin-right:8px;white-space:nowrap">'+lbl+'</span>'
+      +'<button onclick="renameCat('+i+')" title="Renombrar">✏</button>'
+      +'<button onclick="deleteCat('+i+')" title="Eliminar" style="color:var(--coral)">×</button>'
+      +'</div>';
+  }).join('');
+}
+function renameCat(i){
+  const old=categories[i].name;
+  const el=document.getElementById('catListEl');
+  const items=el.querySelectorAll('.acc-item');
+  const sorted=[...categories].sort((a,b)=>{const o={income:0,expense:1,adjustment:2};return(o[a.type]??9)-(o[b.type]??9)||a.name.localeCompare(b.name);});
+  const realIdx=categories.indexOf(sorted[i]);
+  const box=items[i];const nameSpan=box.querySelector('span:first-child');
+  const inp=document.createElement('input');
+  inp.type='text';inp.value=old;inp.style.cssText='flex:1;background:transparent;border:none;border-bottom:1.5px solid var(--teal);color:var(--t);outline:none;font-size:13px;';
+  nameSpan.replaceWith(inp);inp.focus();inp.select();
+  const commit=()=>{
+    const nv=inp.value.trim();if(!nv||nv===old){renderCatList();return;}
+    if(categories.find(c=>c.name===nv)){showAlert('Ya existe','Ya existe una categoría con ese nombre.');renderCatList();return;}
+    movements.forEach(r=>{if(!Array.isArray(r)&&r.category===old)r.category=nv;});
+    credits.forEach(c=>{if(c.categoria===old)c.categoria=nv;});
+    categories[realIdx].name=nv;
+    saveLocal();renderCatList();updateAddCats();populateCatSel();toast('Categoría renombrada: '+nv);autoSave();
+  };
+  inp.addEventListener('blur',commit);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape')renderCatList();});
+}
+function deleteCat(i){
+  const sorted=[...categories].sort((a,b)=>{const o={income:0,expense:1,adjustment:2};return(o[a.type]??9)-(o[b.type]??9)||a.name.localeCompare(b.name);});
+  const cat=sorted[i];
+  const usedIn=movements.filter(r=>gCat(r)===cat.name).length+credits.filter(c=>c.categoria===cat.name).length;
+  const msg=usedIn>0?'Hay '+usedIn+' movimiento(s) con esta categoría. Los movimientos quedan pero sin categoría válida. ¿Continuar?':'¿Eliminar la categoría "'+cat.name+'"?';
+  showConfirm('Eliminar categoría',msg,()=>{
+    const realIdx=categories.indexOf(cat);categories.splice(realIdx,1);
+    saveLocal();renderCatList();updateAddCats();populateCatSel();toast('Categoría eliminada: '+cat.name);autoSave();
+  });
+}
 // ── Category detail ──
 function populateCatSel(){
   // catSel (drill-down): only categories with actual expense movements
@@ -1420,7 +1502,7 @@ function render(){
   const has=movements.length>0||categories.length>0;if(!has){checkOnboarding();return;}
   document.getElementById('recCount').textContent=movements.length+' movimientos · '+credits.length+' créditos';
   document.getElementById('logoSub').textContent=new Date().getFullYear()+' · Personal';
-  buildAllPers();populateCatSel();populateAllAccSels();populateCreditCats();populateMovFilters();updateAddCats();renderAccList();
+  buildAllPers();populateCatSel();populateAllAccSels();populateCreditCats();populateMovFilters();updateAddCats();renderAccList();renderCatList();
   document.getElementById('aDate').value=tod();document.getElementById('cDate').value=tod();document.getElementById('cStart').value=nextM(thisM());
   document.getElementById('trDate').value=tod();populateSel('trFrom',accounts);populateSel('trTo',accounts);
   populateCardSels();document.getElementById('ptNextClose').value='';
