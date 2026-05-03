@@ -1347,16 +1347,15 @@ function isSavingsAcc(name){
 function isSavingsTransfer(r){
   if(!getAdjCats().has(gCat(r))&&!isLegacyAdjCat(gCat(r)))return false;
   const dir=getTransferDir(r);
-  return dir==='in'&&isSavingsAcc(gacc(r))||dir==='out'&&isSavingsAcc(gacc(r));
+  return dir==='in'&&isSavingsAcc(gAcc(r))||dir==='out'&&isSavingsAcc(gAcc(r));
 }
 // Amount going INTO savings accounts (transfers in)
 function getSavingsInflow(movs){
   return movs.filter(r=>{
     if(!getAdjCats().has(gCat(r))&&!isLegacyAdjCat(gCat(r)))return false;
-    return getTransferDir(r)==='in'&&isSavingsAcc(gacc(r));
-  }).reduce((s,r)=>s+gamt(r),0);
+    return getTransferDir(r)==='in'&&isSavingsAcc(gAcc(r));
+  }).reduce((s,r)=>s+gAmt(r),0);
 }
-function gamt(r){return gAmt(r);}
 
 function navToCat(name){
   // Desktop nav
