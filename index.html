@@ -199,6 +199,18 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
+.inc-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border-radius:10px;border-left:3px solid var(--teal);margin-bottom:6px;}
+.inc-row-cat{font-size:11px;color:var(--teal2);font-weight:500;flex:1;}
+.inc-row-detail{font-size:12px;color:var(--t2);flex:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inc-row-acc{font-size:11px;color:var(--t3);}
+.inc-row-amt{font-size:14px;font-weight:600;color:var(--teal2);white-space:nowrap;}
+.inc-row-date{font-size:11px;color:var(--t3);white-space:nowrap;}
+.sav-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+.sav-modal-bg.on{display:flex;}
+.sav-modal{background:var(--bg2);border:1px solid var(--b2);border-radius:20px;padding:28px;max-width:520px;width:100%;max-height:85vh;display:flex;flex-direction:column;}
+.crow2-clickable{cursor:pointer;transition:background .15s;border-radius:6px;}
+.crow2-clickable:hover{background:var(--bg3);}
+
 .tc-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:rgba(55,138,221,.15);color:var(--blue2);margin-left:6px;vertical-align:middle;}
 .tc-debt{color:var(--coral2)!important;}
 .tc-meta{font-size:11px;color:var(--t3);margin-top:2px;}
@@ -228,6 +240,7 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
 .wcat-row-edit input[type=text]:focus{border-bottom-color:var(--teal);}
 .wcat-row-edit select{background:var(--bg);border:1px solid var(--b2);color:var(--t);border-radius:6px;padding:4px 6px;font-size:11px;}
 </style>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 </head>
 <body>
 
@@ -312,6 +325,21 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
   </div>
 </div>
 
+
+<!-- SAVINGS MODAL -->
+<div class="sav-modal-bg" id="savModalBg" onclick="if(event.target===this)closeSavModal()">
+  <div class="sav-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:18px;font-weight:600">Ahorro por mes</div>
+        <div style="font-size:12px;color:var(--t3)">Ingresos − Egresos cada mes</div>
+      </div>
+      <button onclick="closeSavModal()" style="background:none;border:none;color:var(--t3);font-size:22px;cursor:pointer;padding:4px">×</button>
+    </div>
+    <div class="cwrap" style="height:220px;margin-bottom:16px"><canvas id="cSavModal"></canvas></div>
+    <div id="savModalList" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+</div>
 <!-- MAIN APP -->
 <div class="app" id="mainApp" style="display:none">
   <div class="sidebar">
@@ -319,6 +347,7 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
     <div class="nav-section">Análisis</div>
     <div class="nav-item active" onclick="showSec('resumen',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Resumen</div>
     <div class="nav-item" onclick="showSec('egresos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Egresos</div>
+    <div class="nav-item" onclick="showSec('ingresos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>Ingresos</div>
     <div class="nav-item" onclick="showSec('categorias',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Categorías</div>
     <div class="nav-item" onclick="showSec('creditos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Créditos</div>
     <div class="nav-section">Datos</div>
@@ -353,7 +382,7 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
     <div class="kg">
       <div class="kcard" style="border-left:3px solid var(--teal)"><div class="klabel"><span class="dot" style="background:var(--teal)"></span>Ingresos</div><div class="kvalue" id="kInc" style="color:var(--teal2)">—</div><div class="knote" id="kIncN">—</div></div>
       <div class="kcard" style="border-left:3px solid var(--coral)"><div class="klabel"><span class="dot" style="background:var(--coral)"></span>Egresos</div><div class="kvalue" id="kExp" style="color:var(--coral2)">—</div><div class="knote" id="kExpN">—</div></div>
-      <div class="kcard" style="border-left:3px solid var(--blue2)"><div class="klabel"><span class="dot" style="background:var(--blue2)"></span>Ahorro Neto</div><div class="kvalue" id="kSav" style="color:var(--blue2)">—</div><div class="knote" id="kSavN">—</div></div>
+      <div class="kcard" style="border-left:3px solid var(--blue2);cursor:pointer" onclick="openSavModal()" title="Ver ahorro por mes"><div class="klabel"><span class="dot" style="background:var(--blue2)"></span>Ahorro Neto <span style="font-size:10px;color:var(--t3)">↗ ver detalle</span></div><div class="kvalue" id="kSav" style="color:var(--blue2)">—</div><div class="knote" id="kSavN">—</div></div>
       <div class="kcard" style="border-left:3px solid var(--amber2)"><div class="klabel"><span class="dot" style="background:var(--amber2)"></span>Tasa de Ahorro</div><div class="kvalue" id="kRate" style="color:var(--amber2)">—</div><div class="knote" id="kRateN">—</div></div>
     </div>
     <div class="crow">
@@ -368,6 +397,9 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
     <div class="crow">
       <div class="ccard"><div class="ctitle">Saldo por cuenta</div><div class="csub">Balance real acumulado</div><div class="blist" id="accBars"></div></div>
       <div class="ccard"><div class="ctitle">Top categorías de egreso</div><div class="csub" id="top6Sub">—</div><div class="clist" id="topCats"></div></div>
+    </div>
+    <div class="ccard" style="margin-bottom:16px"><div class="ctitle">Evolución del Patrimonio</div><div class="csub">Saldo neto acumulado mes a mes</div>
+      <div class="cwrap" style="height:200px"><canvas id="cPatrimonio"></canvas></div>
     </div>
   </div>
 
@@ -390,6 +422,33 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
       <div class="cwrap" style="height:200px"><canvas id="cTrend"></canvas></div>
     </div>
   </div>
+
+  <!-- INGRESOS -->
+  <div id="sec-ingresos" class="section">
+    <div class="page-header">
+      <div><div class="page-title">Análisis de Ingresos</div><div class="page-sub">Evolución y detalle de entradas</div></div>
+      <div class="hc"><select id="pfInc" onchange="updateIngresos()"></select></div>
+    </div>
+    <div class="kg">
+      <div class="kcard" style="border-left:3px solid var(--teal)"><div class="klabel"><span class="dot" style="background:var(--teal)"></span>Total ingresos</div><div class="kvalue" id="kIncTotal" style="color:var(--teal2)">—</div><div class="knote" id="kIncTotalN">—</div></div>
+      <div class="kcard" style="border-left:3px solid var(--teal)"><div class="klabel">Promedio mensual</div><div class="kvalue" id="kIncAvg" style="color:var(--teal2)">—</div><div class="knote">Últimos meses</div></div>
+      <div class="kcard" style="border-left:3px solid var(--amber2)"><div class="klabel">Mayor ingreso</div><div class="kvalue" id="kIncMax" style="color:var(--amber2)">—</div><div class="knote" id="kIncMaxN">—</div></div>
+      <div class="kcard" style="border-left:3px solid var(--blue2)"><div class="klabel">Transacciones</div><div class="kvalue" id="kIncCount" style="color:var(--blue2)">—</div><div class="knote">En el período</div></div>
+    </div>
+    <div class="crow">
+      <div class="ccard"><div class="ctitle">Ingresos por mes</div><div class="csub">Evolución y composición</div>
+        <div class="cwrap" style="height:240px"><canvas id="cIncMonthly"></canvas></div>
+      </div>
+      <div class="ccard"><div class="ctitle">Por categoría</div><div class="csub" id="incRankSub">—</div>
+        <div style="overflow-y:auto;max-height:240px"><div id="incRank" class="clist"></div></div>
+      </div>
+    </div>
+    <div class="ccard" style="margin-bottom:16px">
+      <div class="ctitle">Movimientos de ingreso</div><div class="csub" id="incListSub">—</div>
+      <div id="incList" style="margin-top:12px;max-height:400px;overflow-y:auto"></div>
+    </div>
+  </div>
+
 
   <!-- CATEGORIAS -->
   <div id="sec-categorias" class="section">
@@ -638,6 +697,7 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
   <div class="mob-inner">
     <div class="mob-item active" id="mn-resumen" onclick="showSecMob('resumen',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Inicio</div>
     <div class="mob-item" id="mn-egresos" onclick="showSecMob('egresos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>Egresos</div>
+    <div class="mob-item" id="mn-ingresos" onclick="showSecMob('ingresos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>Ingresos</div>
     <div class="mob-item" id="mn-creditos" onclick="showSecMob('creditos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Créditos</div>
     <div class="mob-item" id="mn-movimientos" onclick="showSecMob('movimientos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>Movs</div>
     <div class="mob-item" id="mn-agregar" onclick="showSecMob('agregar',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Agregar</div>
@@ -1023,16 +1083,17 @@ function mkHBar(id,labels,vals){mkChart(id,{type:'bar',data:{labels,datasets:[{d
 function updateResumen(){
   const per=document.getElementById('pf').value;const all=allMovs();const fil=fByPer(all,per);
   const inc=fil.filter(isInc).reduce((s,r)=>s+gAmt(r),0);const exp=fil.filter(isExp).reduce((s,r)=>s+gAmt(r),0);
-  const sav=inc-exp;const rate=inc>0?sav/inc*100:0;
+  const savInflow=getSavingsInflow(fil);
+  const sav=inc-exp+savInflow;const rate=inc>0?sav/inc*100:0;
   document.getElementById('kInc').textContent=ars(inc);document.getElementById('kExp').textContent=ars(exp);
   document.getElementById('kSav').textContent=ars(sav);document.getElementById('kSav').style.color=sav>=0?'var(--teal2)':'var(--coral2)';
   document.getElementById('kRate').textContent=rate.toFixed(1)+'%';
   document.getElementById('kIncN').textContent=fil.filter(isInc).length+' transacciones';
-  document.getElementById('kExpN').textContent=fil.filter(isExp).length+' egresos';
+  document.getElementById('kExpN').textContent=fil.filter(isExp).length+' egresos'+(savInflow>0?' · ahorro +'+ars(savInflow):'');
   document.getElementById('kSavN').textContent=sav>=0?'Superávit':'Déficit';document.getElementById('kSavN').style.color=sav>=0?'var(--teal)':'var(--coral)';
   document.getElementById('kRateN').textContent=rate>=30?'Excelente ↑':rate>=15?'Saludable':'Atención ↓';
   document.getElementById('rSub').textContent=per==='all'?'Todo el período':ml(per)+' '+per.slice(0,4);
-  try{updMonthly();}catch(e){}try{updDonut(fil);}catch(e){}try{updAccBars();}catch(e){}try{updTop6(fil);}catch(e){}
+  try{updMonthly();}catch(e){}try{updDonut(fil);}catch(e){}try{updAccBars();}catch(e){}try{updTop6(fil);}catch(e){}try{updPatrimonio();}catch(e){}
 }
 function updMonthly(){
   const months=getMonths();const labels=months.map(ml);const all=allMovs();
@@ -1075,9 +1136,95 @@ function updTop6(fil){
   const bc={};fil.filter(isExp).forEach(r=>{bc[gCat(r)]=(bc[gCat(r)]||0)+gAmt(r);});
   const sorted=Object.entries(bc).sort((a,b)=>b[1]-a[1]).slice(0,6);const total=Object.values(bc).reduce((a,b)=>a+b,0);const max=sorted[0]?sorted[0][1]:1;
   document.getElementById('top6Sub').textContent=document.getElementById('pf').value==='all'?'Todo el período':'Mes seleccionado';
-  document.getElementById('topCats').innerHTML=sorted.map(([name,val],i)=>'<div class="crow2"><div class="ch"><div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:2px;background:'+COLS[i]+'"></div><span class="cn">'+name+'</span></div><div style="display:flex;gap:8px;align-items:center"><span style="font-size:10px;color:var(--t3)">'+(total>0?(val/total*100).toFixed(1):0)+'%</span><span class="ca">'+ars(val)+'</span></div></div><div class="cbg"><div class="cbf" style="width:'+(val/max*100).toFixed(1)+'%;background:'+COLS[i]+'"></div></div></div>').join('');
+  document.getElementById('topCats').innerHTML=sorted.map(([name,val],i)=>'<div class="crow2 crow2-clickable" onclick="navToCat(\'' +name+ '\')"><div class="ch"><div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:2px;background:'+COLS[i]+'"></div><span class="cn">'+name+'</span></div><div style="display:flex;gap:8px;align-items:center"><span style="font-size:10px;color:var(--t3)">'+(total>0?(val/total*100).toFixed(1):0)+'%</span><span class="ca">'+ars(val)+'</span></div></div><div class="cbg"><div class="cbf" style="width:'+(val/max*100).toFixed(1)+'%;background:'+COLS[i]+'"></div></div></div>').join('');
 }
 
+
+// ── Patrimonio acumulado ──
+function updPatrimonio(){
+  const months=getMonths();const labels=months.map(ml);const all=allMovs();
+  const inc=getIncCats();const adj=getAdjCats();
+  let running=0;
+  const data=months.map(m=>{
+    const fil=fByPer(all,m);
+    fil.forEach(r=>{
+      const cat=gCat(r);
+      if(inc.has(cat)){running+=gAmt(r);}
+      else if(adj.has(cat)||isLegacyAdjCat(cat)){/* neutral */}
+      else{running-=gAmt(r);}
+    });
+    return Math.round(running);
+  });
+  mkLine('cPatrimonio',labels,[{label:'Patrimonio',data,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.12)',borderWidth:2.5,pointRadius:4,tension:.3,fill:true}]);
+}
+
+// ── Ingresos section ──
+function updateIngresos(){
+  const per=document.getElementById('pfInc').value;const all=allMovs();
+  const fil=fByPer(all,per).filter(isInc);
+  const total=fil.reduce((s,r)=>s+gAmt(r),0);
+  const months=getMonths();
+  const avgMonths=months.filter(m=>fByPer(all,m).filter(isInc).length>0);
+  const avg=avgMonths.length?months.reduce((s,m)=>s+fByPer(all,m).filter(isInc).reduce((a,r)=>a+gAmt(r),0),0)/avgMonths.length:0;
+  const maxMov=fil.reduce((mx,r)=>gAmt(r)>gAmt(mx)?r:mx,fil[0]);
+  document.getElementById('kIncTotal').textContent=ars(total);
+  document.getElementById('kIncTotalN').textContent=fil.length+' transacciones';
+  document.getElementById('kIncAvg').textContent=ars(Math.round(avg));
+  document.getElementById('kIncMax').textContent=maxMov?ars(gAmt(maxMov)):'—';
+  document.getElementById('kIncMaxN').textContent=maxMov?gCat(maxMov):'—';
+  document.getElementById('kIncCount').textContent=fil.length;
+  // Bar chart by month + category
+  const cats=[...new Set(all.filter(isInc).map(gCat))];
+  const incLabels=months.map(ml);
+  try{mkBar('cIncMonthly',incLabels,cats.map((cat,i)=>({
+    label:cat,
+    data:months.map(m=>Math.round(fByPer(all,m).filter(r=>isInc(r)&&gCat(r)===cat).reduce((s,r)=>s+gAmt(r),0))),
+    backgroundColor:COLS[i%COLS.length],borderWidth:0,borderRadius:3
+  })),true);}catch(e){}
+  // Ranking by category
+  const bc={};fil.forEach(r=>{bc[gCat(r)]=(bc[gCat(r)]||0)+gAmt(r);});
+  const ranked=Object.entries(bc).sort((a,b)=>b[1]-a[1]);const maxV=ranked[0]?ranked[0][1]:1;
+  document.getElementById('incRankSub').textContent=per==='all'?'Todo el período':ml(per);
+  document.getElementById('incRank').innerHTML=ranked.map(([name,val],i)=>
+    '<div class="crow2"><div class="ch"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--t3);width:16px;text-align:right">'+(i+1)+'</span><span class="cn">'+name+'</span></div><span class="ca" style="color:var(--teal2)">'+ars(val)+'</span></div><div class="cbg"><div class="cbf" style="width:'+(val/maxV*100).toFixed(1)+'%;background:'+COLS[i%COLS.length]+'"></div></div></div>'
+  ).join('');
+  // Movement list
+  const sorted=[...fil].sort((a,b)=>gDate(b).localeCompare(gDate(a)));
+  document.getElementById('incListSub').textContent=sorted.length+' movimientos · '+ars(total);
+  document.getElementById('incList').innerHTML=sorted.map(r=>{
+    const d=new Date(gDate(r)+'T12:00:00');
+    return '<div class="inc-row">'
+      +'<div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">'
+      +'<div style="display:flex;align-items:center;gap:8px"><span class="inc-row-cat">'+gCat(r)+'</span><span class="inc-row-date">'+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'</span></div>'
+      +'<div style="display:flex;align-items:center;gap:8px"><span class="inc-row-detail">'+gDetail(r)+'</span><span class="inc-row-acc">'+gAcc(r)+'</span></div>'
+      +'</div>'
+      +'<span class="inc-row-amt">+'+ars(gAmt(r))+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+// ── Savings modal ──
+function openSavModal(){
+  const months=getMonths();const all=allMovs();
+  const labels=months.map(ml);
+  const incA=months.map(m=>Math.round(fByPer(all,m).filter(isInc).reduce((s,r)=>s+gAmt(r),0)));
+  const expA=months.map(m=>Math.round(fByPer(all,m).filter(isExp).reduce((s,r)=>s+gAmt(r),0)));
+  const savA=months.map((_,i)=>incA[i]-expA[i]);
+  try{mkBar('cSavModal',labels,[
+    {label:'Ahorro',data:savA,backgroundColor:savA.map(v=>v>=0?'rgba(29,158,117,.75)':'rgba(216,90,48,.75)'),borderWidth:0,borderRadius:4}
+  ]);}catch(e){}
+  document.getElementById('savModalList').innerHTML=months.map((m,i)=>{
+    const s=savA[i];const col=s>=0?'var(--teal2)':'var(--coral2)';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg3);border-radius:8px">'
+      +'<div style="font-size:13px">'+ml(m)+' '+m.slice(0,4)+'</div>'
+      +'<div style="display:flex;gap:16px;font-size:12px;color:var(--t3)">'
+      +'<span>↑ '+ars(incA[i])+'</span><span>↓ '+ars(expA[i])+'</span>'
+      +'<span style="font-weight:600;color:'+col+'">'+ars(s)+'</span>'
+      +'</div></div>';
+  }).join('');
+  document.getElementById('savModalBg').classList.add('on');
+}
+function closeSavModal(){document.getElementById('savModalBg').classList.remove('on');}
 // ── Egresos ──
 function updateEgresos(){
   const per=document.getElementById('pf2').value;const all=allMovs();const fil=fByPer(all,per);
@@ -1091,7 +1238,7 @@ function updateEgresos(){
   const bc={};fil.filter(isExp).forEach(r=>{bc[gCat(r)]=(bc[gCat(r)]||0)+gAmt(r);});
   const ranked=Object.entries(bc).sort((a,b)=>b[1]-a[1]);const maxV=ranked[0]?ranked[0][1]:1;
   document.getElementById('rankSub').textContent=per==='all'?'Todo el período':ml(per);
-  document.getElementById('egRank').innerHTML=ranked.map(([name,val],i)=>'<div class="crow2"><div class="ch"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--t3);width:16px;text-align:right">'+(i+1)+'</span><span class="cn">'+name+'</span></div><span class="ca">'+ars(val)+'</span></div><div class="cbg"><div class="cbf" style="width:'+(val/maxV*100).toFixed(1)+'%;background:'+COLS[i%COLS.length]+'"></div></div></div>').join('');
+  document.getElementById('egRank').innerHTML=ranked.map(([name,val],i)=>'<div class="crow2 crow2-clickable" onclick="navToCat(\'' +name+ '\')"><div class="ch"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--t3);width:16px;text-align:right">'+(i+1)+'</span><span class="cn">'+name+'</span></div><span class="ca">'+ars(val)+'</span></div><div class="cbg"><div class="cbf" style="width:'+(val/maxV*100).toFixed(1)+'%;background:'+COLS[i%COLS.length]+'"></div></div></div>').join('');
 }
 
 
@@ -1189,6 +1336,41 @@ function deleteCat(i){
     const realIdx=categories.indexOf(cat);categories.splice(realIdx,1);
     saveLocal();renderCatList();updateAddCats();populateCatSel();toast('Categoría eliminada: '+cat.name);autoSave();
   });
+}
+
+// ── Savings accounts ──
+const SAV_KEYWORDS=['inversión','inversion','deposito','depósito','ahorro','saving','plazo','fijo'];
+function isSavingsAcc(name){
+  const lc=name.toLowerCase();
+  return SAV_KEYWORDS.some(w=>lc.includes(w));
+}
+function isSavingsTransfer(r){
+  if(!getAdjCats().has(gCat(r))&&!isLegacyAdjCat(gCat(r)))return false;
+  const dir=getTransferDir(r);
+  return dir==='in'&&isSavingsAcc(gacc(r))||dir==='out'&&isSavingsAcc(gacc(r));
+}
+// Amount going INTO savings accounts (transfers in)
+function getSavingsInflow(movs){
+  return movs.filter(r=>{
+    if(!getAdjCats().has(gCat(r))&&!isLegacyAdjCat(gCat(r)))return false;
+    return getTransferDir(r)==='in'&&isSavingsAcc(gacc(r));
+  }).reduce((s,r)=>s+gamt(r),0);
+}
+function gamt(r){return gAmt(r);}
+
+function navToCat(name){
+  // Desktop nav
+  const desktopEl=document.querySelector('.nav-item[onclick*="categorias"]');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.mob-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('sec-categorias').classList.add('active');
+  if(desktopEl)desktopEl.classList.add('active');
+  buildPer('catPf',true);
+  const sel=document.getElementById('catSel');
+  setTimeout(()=>{
+    if(sel){sel.value=name;updateCatDetail();}
+  },50);
 }
 // ── Category detail ──
 function populateCatSel(){
@@ -1484,12 +1666,12 @@ function saveQuick(){
 function showSec(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('sec-'+id).classList.add('active');if(el)el.classList.add('active');
-  if(id==='egresos'){buildPer('pf2',true);updateEgresos();}if(id==='categorias'){buildPer('catPf',true);updateCatDetail();}if(id==='creditos')updateCreditos();
+  if(id==='egresos'){buildPer('pf2',true);updateEgresos();}if(id==='ingresos'){buildPer('pfInc',true);updateIngresos();}if(id==='categorias'){buildPer('catPf',true);updateCatDetail();}if(id==='creditos')updateCreditos();
 }
 function showSecMob(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.mob-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('sec-'+id).classList.add('active');if(el)el.classList.add('active');
-  if(id==='egresos'){buildPer('pf2',true);updateEgresos();}if(id==='categorias'){buildPer('catPf',true);updateCatDetail();}if(id==='creditos')updateCreditos();
+  if(id==='egresos'){buildPer('pf2',true);updateEgresos();}if(id==='ingresos'){buildPer('pfInc',true);updateIngresos();}if(id==='categorias'){buildPer('catPf',true);updateCatDetail();}if(id==='creditos')updateCreditos();
 }
 function showStab(id,el){
   const parent=el.closest('.stabs');parent.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
