@@ -119,6 +119,9 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
 .prog-bg{background:var(--bg2);border-radius:4px;height:6px;margin-bottom:6px;}
 .prog-fill{height:6px;border-radius:4px;background:var(--purple);}
 .prog-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--t3);}
+.cred-actions{display:flex;gap:6px;align-items:center;}
+.cred-edit{background:none;border:none;cursor:pointer;padding:4px 7px;border-radius:5px;font-size:14px;color:var(--t3);}
+.cred-edit:hover{background:var(--b2);color:var(--t);}
 .cred-del{background:none;border:none;color:var(--t3);cursor:pointer;font-size:18px;padding:0 4px;}
 .cred-del:hover{color:var(--red);}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;}
@@ -278,6 +281,33 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
         <button class="btn btn-s" style="margin:0" onclick="wNext(1)">← Atrás</button>
         <button class="btn btn-p" onclick="wFinish()">¡Empezar! →</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT CREDIT MODAL -->
+<div class="rev-bg" id="editCredBg" onclick="if(event.target===this)closeEditCred()">
+  <div class="rev-card" style="max-width:500px">
+    <div style="font-size:22px;margin-bottom:4px">✏ Editar crédito</div>
+    <div class="wiz-sub" style="font-size:12px;margin-bottom:16px">Modificá los datos del crédito. Las cuotas se recalculan automáticamente.</div>
+    <input type="hidden" id="ecId">
+    <div class="fr"><label>Descripción</label><input type="text" id="ecName" placeholder="Ej: Smart TV Samsung"></div>
+    <div class="fr2">
+      <div><label>Categoría</label><select id="ecCat"></select></div>
+      <div><label>Cuenta / Tarjeta</label><select id="ecAcc"></select></div>
+    </div>
+    <div class="fr2">
+      <div><label>Monto total</label><input type="number" id="ecMonto" placeholder="0" min="0" oninput="updateEcCalc()"></div>
+      <div><label>Cuotas</label><input type="number" id="ecCuotas" placeholder="1" min="1" max="60" oninput="updateEcCalc()"></div>
+    </div>
+    <div class="fr2">
+      <div><label>Fecha de compra</label><input type="date" id="ecDate"></div>
+      <div><label>Mes del 1° débito</label><input type="month" id="ecStart" style="background:var(--bg3);border:1px solid var(--b2);color:var(--t);border-radius:8px;padding:7px 12px;font-size:13px;width:100%"></div>
+    </div>
+    <div id="ecCalc" style="font-size:12px;color:var(--teal2);padding:6px 0;display:none"></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:14px;border-top:1px solid var(--b);margin-top:8px">
+      <button class="btn btn-s" onclick="closeEditCred()">Cancelar</button>
+      <button class="btn btn-p" onclick="saveEditCred()">Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -1051,14 +1081,20 @@ function wFinish(){
 
 // ── Data ──
 function getMonths(){
+  const cur=thisM();
   const s=new Set(movements.map(r=>gDate(r).slice(0,7)));
-  credits.forEach(c=>{for(let i=0;i<c.cuotas;i++){const[y,m]=c.mesInicio.split('-').map(Number);const d=new Date(y,m-1+i,1);s.add(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }});
-  return[...s].sort();
+  getCredMovsToDate().forEach(r=>s.add(gDate(r).slice(0,7)));
+  return[...s].filter(m=>m<=cur).sort();
 }
 function getCredMovs(){
   const t=[];credits.forEach(c=>{for(let i=0;i<c.cuotas;i++){const[y,m]=c.mesInicio.split('-').map(Number);const d=new Date(y,m-1+i,10);const ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');t.push([ym+'-10',c.categoria,c.nombre+' (cuota '+(i+1)+'/'+c.cuotas+')',c.account||c.almacen||"",c.montoCuota,'credit',c.id]);}});return t;
 }
 function allMovs(){return[...movements,...getCredMovs()];}
+function getCredMovsToDate(){
+  const cur=thisM();
+  const t=[];credits.forEach(c=>{for(let i=0;i<c.cuotas;i++){const[y,m]=c.mesInicio.split('-').map(Number);const d=new Date(y,m-1+i,10);const ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(ym>cur)continue;t.push([ym+'-10',c.categoria,c.nombre+' (cuota '+(i+1)+'/'+c.cuotas+')',c.account||c.almacen||'',c.montoCuota,'credit',c.id]);}});return t;
+}
+function allMovsToDate(){return[...movements,...getCredMovsToDate()];}
 function fByPer(rows,per){if(!per||per==='all')return rows;return rows.filter(r=>gDate(r).startsWith(per));}
 
 // ── Period selects ──
@@ -1083,7 +1119,7 @@ function mkHBar(id,labels,vals){mkChart(id,{type:'bar',data:{labels,datasets:[{d
 
 // ── Resumen ──
 function updateResumen(){
-  const per=document.getElementById('pf').value;const all=allMovs();const fil=fByPer(all,per);
+  const per=document.getElementById('pf').value;const all=allMovsToDate();const fil=fByPer(all,per);
   const inc=fil.filter(isInc).reduce((s,r)=>s+gAmt(r),0);const exp=fil.filter(isExp).reduce((s,r)=>s+gAmt(r),0);
   const sav=inc-exp;const rate=inc>0?sav/inc*100:0;
   document.getElementById('kInc').textContent=ars(inc);document.getElementById('kExp').textContent=ars(exp);
@@ -1097,7 +1133,7 @@ function updateResumen(){
   try{updMonthly();}catch(e){}try{updDonut(fil);}catch(e){}try{updAccBars();}catch(e){}try{updTop6(fil);}catch(e){}try{updPatrimonio();}catch(e){}
 }
 function updMonthly(){
-  const months=getMonths();const labels=months.map(ml);const all=allMovs();
+  const months=getMonths();const labels=months.map(ml);const all=allMovsToDate();
   const incA=months.map(m=>Math.round(fByPer(all,m).filter(isInc).reduce((s,r)=>s+gAmt(r),0)));
   const expA=months.map(m=>Math.round(fByPer(all,m).filter(isExp).reduce((s,r)=>s+gAmt(r),0)));
   const savA=months.map((_,i)=>incA[i]-expA[i]);
@@ -1109,7 +1145,7 @@ function updDonut(fil){
   mkDonut('cDonut',s.map(e=>e[0]),s.map(e=>Math.round(e[1])),COLS.slice(0,s.length));
 }
 function updAccBars(){
-  const all=allMovs();const inc=getIncCats();const adj=getAdjCats();const totals={};
+  const all=allMovsToDate();const inc=getIncCats();const adj=getAdjCats();const totals={};
   all.forEach(r=>{
     const cat=gCat(r);let sign;
     if(inc.has(cat))sign=1;
@@ -1143,7 +1179,7 @@ function updTop6(fil){
 
 // ── Patrimonio acumulado ──
 function updPatrimonio(){
-  const months=getMonths();const labels=months.map(ml);const all=allMovs();
+  const months=getMonths();const labels=months.map(ml);const all=allMovsToDate();
   const inc=getIncCats();const adj=getAdjCats();
   let running=0;
   const data=months.map(m=>{
@@ -1161,7 +1197,7 @@ function updPatrimonio(){
 
 // ── Ingresos section ──
 function updateIngresos(){
-  const per=document.getElementById('pfInc').value;const all=allMovs();
+  const per=document.getElementById('pfInc').value;const all=allMovsToDate();
   const fil=fByPer(all,per).filter(isInc);
   const total=fil.reduce((s,r)=>s+gAmt(r),0);
   const months=getMonths();
@@ -1206,7 +1242,7 @@ function updateIngresos(){
 
 // ── Savings modal ──
 function openSavModal(){
-  const months=getMonths();const all=allMovs();
+  const months=getMonths();const all=allMovsToDate();
   const labels=months.map(ml);
   const incA=months.map(m=>Math.round(fByPer(all,m).filter(isInc).reduce((s,r)=>s+gAmt(r),0)));
   const expA=months.map(m=>Math.round(fByPer(all,m).filter(isExp).reduce((s,r)=>s+gAmt(r),0)));
@@ -1228,7 +1264,7 @@ function openSavModal(){
 function closeSavModal(){document.getElementById('savModalBg').classList.remove('on');}
 // ── Egresos ──
 function updateEgresos(){
-  const per=document.getElementById('pf2').value;const all=allMovs();const fil=fByPer(all,per);
+  const per=document.getElementById('pf2').value;const all=allMovsToDate();const fil=fByPer(all,per);
   const bcA={};all.filter(isExp).forEach(r=>{bcA[gCat(r)]=(bcA[gCat(r)]||0)+gAmt(r);});
   const top8=Object.entries(bcA).sort((a,b)=>b[1]-a[1]).slice(0,8).map(e=>e[0]);
   const months=getMonths();const labels=months.map(ml);
@@ -1375,7 +1411,7 @@ function navToCat(name){
 // ── Category detail ──
 function populateCatSel(){
   // catSel (drill-down): only categories with actual expense movements
-  const movCats=[...new Set(allMovs().filter(isExp).map(r=>gCat(r)))].sort();
+  const movCats=[...new Set(allMovsToDate().filter(isExp).map(r=>gCat(r)))].sort();
   const sel=document.getElementById('catSel');const cur=sel.value;
   sel.innerHTML='<option value="">— Elegir categoría —</option>'+movCats.map(c=>'<option>'+c+'</option>').join('');
   if(cur&&movCats.includes(cur))sel.value=cur;
@@ -1388,7 +1424,7 @@ function updateCatDetail(){
   document.getElementById('catEmpty').style.display=cat?'none':'block';
   document.getElementById('catContent').style.display=cat?'block':'none';
   if(!cat)return;
-  const all=allMovs();const rows=fByPer(all,per).filter(r=>gCat(r)===cat);
+  const all=allMovsToDate();const rows=fByPer(all,per).filter(r=>gCat(r)===cat);
   const total=rows.reduce((s,r)=>s+gAmt(r),0);const count=rows.length;const avg=count>0?total/count:0;
   const maxRow=rows.length?rows.reduce((m,r)=>gAmt(r)>gAmt(m)?r:m):null;
   document.getElementById('catTotal').textContent=ars(total);document.getElementById('catTotalN').textContent=per==='all'?'Acumulado':ml(per);
@@ -1517,6 +1553,52 @@ function addTransfer(){
 function clearTransferForm(){document.getElementById('trAmount').value='';document.getElementById('trDetail').value='';}
 
 function clearCreditForm(){['cName','cTotal','cN','cCalc'].forEach(id=>{document.getElementById(id).value='';});}
+
+// ── Edit credit ──
+function openEditCred(id){
+  const c=credits.find(x=>x.id===id);if(!c)return;
+  document.getElementById('ecId').value=id;
+  document.getElementById('ecName').value=c.nombre;
+  document.getElementById('ecMonto').value=c.montoTotal;
+  document.getElementById('ecCuotas').value=c.cuotas;
+  document.getElementById('ecDate').value=c.date||c.fecha||'';
+  document.getElementById('ecStart').value=c.mesInicio;
+  // populate selects
+  const cats=categories.filter(x=>x.type==='expense').map(x=>x.name);
+  document.getElementById('ecCat').innerHTML=cats.map(x=>'<option'+(x===c.categoria?' selected':'')+'>'+x+'</option>').join('');
+  document.getElementById('ecAcc').innerHTML=accounts.map(x=>'<option'+(x===(c.account||c.almacen)?' selected':'')+'>'+x+'</option>').join('');
+  updateEcCalc();
+  document.getElementById('editCredBg').classList.add('on');
+}
+function updateEcCalc(){
+  const monto=parseFloat(document.getElementById('ecMonto').value)||0;
+  const cuotas=parseInt(document.getElementById('ecCuotas').value)||1;
+  const mc=monto/cuotas;
+  const el=document.getElementById('ecCalc');
+  if(monto>0){el.style.display='';el.textContent='→ '+cuotas+' cuota'+(cuotas>1?'s':'')+' de '+ars(mc);}
+  else el.style.display='none';
+}
+function saveEditCred(){
+  const id=document.getElementById('ecId').value;
+  const idx=credits.findIndex(x=>x.id===id);if(idx<0)return;
+  const monto=parseFloat(document.getElementById('ecMonto').value)||0;
+  const cuotas=parseInt(document.getElementById('ecCuotas').value)||1;
+  if(!monto||!cuotas){showAlert('Campos incompletos','Completá monto y cuotas.');return;}
+  credits[idx]={
+    ...credits[idx],
+    nombre:document.getElementById('ecName').value.trim()||credits[idx].nombre,
+    categoria:document.getElementById('ecCat').value,
+    account:document.getElementById('ecAcc').value,
+    almacen:document.getElementById('ecAcc').value,
+    date:document.getElementById('ecDate').value,
+    mesInicio:document.getElementById('ecStart').value,
+    montoTotal:monto,
+    cuotas,
+    montoCuota:Math.round(monto/cuotas*100)/100,
+  };
+  closeEditCred();saveLocal();updateCreditos();renderMovs();toast('✓ Crédito actualizado');autoSave();
+}
+function closeEditCred(){document.getElementById('editCredBg').classList.remove('on');}
 function delCredit(id){showConfirm('Eliminar crédito','¿Eliminar este crédito? Se quitarán todas sus cuotas.',()=>{credits=credits.filter(c=>c.id!==id);saveLocal();updateCreditos();renderMovs();toast('Crédito eliminado');autoSave();});}
 function updateCreditos(){
   const cur=thisM();const next=nextM(cur);const cm=getCredMovs();
@@ -1537,7 +1619,7 @@ function updateCreditos(){
 // ── Movements table ──
 function renderMovs(){
   const q=(document.getElementById('mSearch').value||''). toLowerCase();const cat=document.getElementById('mCat').value;const acc=document.getElementById('mAcc').value;const per=document.getElementById('mPer').value;const type=document.getElementById('mType').value;
-  filteredMovs=allMovs().filter(r=>{
+  filteredMovs=allMovsToDate().filter(r=>{
     if(per&&!gDate(r).startsWith(per))return false;if(cat&&gCat(r)!==cat)return false;if(acc&&gAcc(r)!==acc)return false;
     if(type==='income'&&!isInc(r))return false;if(type==='expense'&&!isExp(r))return false;if(type==='credit'&&gType(r)!=='credit')return false;
     if(q&&!gDetail(r).toLowerCase().includes(q)&&!gCat(r).toLowerCase().includes(q)&&!gAcc(r).toLowerCase().includes(q))return false;
