@@ -644,16 +644,19 @@ tbody tr:hover td{background:var(--bg2);color:var(--t);}
     <div id="aPayTC" class="spanel">
       <div class="fcard">
         <div class="ftitle">Registrar pago de tarjeta</div>
-        <div class="notebox">Ingresá los datos del resumen. El sistema calcula el costo implícito (cargos, intereses, impuestos) como diferencia entre el total del resumen y el consumo que tenés registrado.</div>
+        <div class="notebox">Ingresá el <b>cierre del próximo período</b> y la <b>fecha en que pagás</b>. El sistema busca automáticamente los gastos del período que cerró (el que figura en el resumen).</div>
         <div class="fr2">
           <div><label>Tarjeta</label><select id="ptCard" onchange="updatePayPreview()"></select></div>
           <div><label>Cuenta origen</label><select id="ptFrom" onchange="updatePayPreview()"></select></div>
         </div>
         <div class="fr2">
-          <div><label>Próxima fecha de cierre</label><input type="date" id="ptNextClose" oninput="updatePayPreview()"></div>
+          <div><label>Próxima fecha de cierre <span style="color:var(--t3);font-size:11px">(del período siguiente)</span></label><input type="date" id="ptNextClose" oninput="updatePayPreview()"></div>
           <div><label>Monto total del resumen</label><input type="number" id="ptTotal" placeholder="0" min="0" oninput="updatePayPreview()"></div>
         </div>
-        <div class="fr"><label>Monto a abonar</label><input type="number" id="ptPagar" placeholder="0" min="0" oninput="updatePayPreview()"></div>
+        <div class="fr2">
+          <div><label>Fecha de pago <span style="color:var(--t3);font-size:11px">(hoy por defecto)</span></label><input type="date" id="ptPayDate" oninput="updatePayPreview()"></div>
+          <div><label>Monto a abonar</label><input type="number" id="ptPagar" placeholder="0" min="0" oninput="updatePayPreview()"></div>
+        </div>
         <div class="pay-preview" id="payPreview">
           <div class="pay-row"><span>Período cubierto</span><span id="ppPeriod">—</span></div>
           <div class="pay-row"><span>Consumo registrado en el período</span><span id="ppConsumo">—</span></div>
@@ -1460,19 +1463,18 @@ function updatePayPreview(){
   const total=parseFloat(document.getElementById('ptTotal').value)||0;
   const pagar=parseFloat(document.getElementById('ptPagar').value)||0;
   const box=document.getElementById('payPreview');
-  if(!card||!nextClose||!total){box.classList.remove('on');return;}
+  if(!card||!total){box.classList.remove('on');return;}
   const meta=getCardMeta(card);
-  const lastClose=meta.lastClose||'';
-  // Period label
-  const periodLabel=lastClose?(fmtD(lastClose)+' → '+fmtD(nextClose)):'hasta '+fmtD(nextClose);
+  const periodEnd=meta.lastClose||'';
+  const periodStart=meta.prevClose||'';
+  const periodLabel=periodStart?('Desde '+fmtD(periodStart)+' hasta '+fmtD(periodEnd)):(periodEnd?'Hasta '+fmtD(periodEnd):'Todo el período');
   document.getElementById('ppPeriod').textContent=periodLabel;
-  // Consumo: all movements for this card in the period
   const all=allMovs();
   const consumo=all.filter(r=>{
     const d=gDate(r);const acc=gAcc(r);
     if(acc!==card)return false;
-    if(lastClose&&d<=lastClose)return false;
-    if(d>nextClose)return false;
+    if(periodStart&&d<=periodStart)return false;
+    if(periodEnd&&d>periodEnd)return false;
     // Exclude incoming transfers (transferDir=in) and payment-generated costs
     if(getTransferDir(r)==='in')return false;
     const cat=gCat(r);if(cat==='Costos '+card)return false;
@@ -1499,23 +1501,25 @@ function registerCardPayment(){
   const card=document.getElementById('ptCard').value;
   const from=document.getElementById('ptFrom').value;
   const nextClose=document.getElementById('ptNextClose').value;
+  const payDate=document.getElementById('ptPayDate').value||tod();
   const total=parseFloat(document.getElementById('ptTotal').value)||0;
   const pagar=parseFloat(document.getElementById('ptPagar').value)||0;
-  if(!card||!from||!nextClose||!total||!pagar){showAlert('Campos incompletos','Completá todos los campos.');return;}
+  if(!card||!from||!total||!pagar){showAlert('Campos incompletos','Completá todos los campos.');return;}
   if(card===from){showAlert('Error','La tarjeta y la cuenta origen no pueden ser la misma.');return;}
-  ensureTransferCat();const grp=gid();const date=nextClose;
-  // 1. Transfer out from origin
-  movements.push({id:gid(),date,category:'Transferencia entre cuentas',detail:'Pago resumen '+card,account:from,amount:pagar,type:'adjustment',transferDir:'out',transferGroup:grp});
-  // 2. Transfer in to TC
-  movements.push({id:gid(),date,category:'Transferencia entre cuentas',detail:'Pago resumen '+card,account:card,amount:pagar,type:'adjustment',transferDir:'in',transferGroup:grp});
-  // 3. Implicit cost if any
+  ensureTransferCat();const grp=gid();
+  // Transfers dated on actual payment date
+  movements.push({id:gid(),date:payDate,category:'Transferencia entre cuentas',detail:'Pago resumen '+card,account:from,amount:pagar,type:'adjustment',transferDir:'out',transferGroup:grp});
+  movements.push({id:gid(),date:payDate,category:'Transferencia entre cuentas',detail:'Pago resumen '+card,account:card,amount:pagar,type:'adjustment',transferDir:'in',transferGroup:grp});
+  // Consumo: expenses on card from prevClose(excl) to lastClose(incl) = the period just closed
   const meta=getCardMeta(card);
+  const periodEnd=meta.lastClose||'';
+  const periodStart=meta.prevClose||'';
   const all=allMovs();
   const consumo=all.filter(r=>{
     const d=gDate(r);const acc=gAcc(r);
     if(acc!==card)return false;
-    if(meta.lastClose&&d<=meta.lastClose)return false;
-    if(d>nextClose)return false;
+    if(periodStart&&d<=periodStart)return false;
+    if(periodEnd&&d>periodEnd)return false;
     if(getTransferDir(r)==='in')return false;
     const cat=gCat(r);if(cat==='Costos '+card)return false;
     return true;
@@ -1524,17 +1528,17 @@ function registerCardPayment(){
   if(costo>0){
     const costCat='Costos '+card;
     if(!categories.find(c=>c.name===costCat))categories.push({name:costCat,type:'expense'});
-    movements.push({id:gid(),date,category:costCat,detail:'Cargos/intereses '+card,account:card,amount:costo,type:'expense'});
+    movements.push({id:gid(),date:periodEnd||payDate,category:costCat,detail:'Cargos/intereses '+card,account:card,amount:costo,type:'expense'});
   }
-  // Update lastClose
-  accountMeta[card]={...meta,lastClose:nextClose};
+  // Roll dates: prevClose = current lastClose, lastClose = nextClose entered by user
+  accountMeta[card]={...meta,prevClose:periodEnd,lastClose:nextClose||periodEnd};
   saveLocal();render();
   document.getElementById('payPreview').classList.remove('on');
   document.getElementById('ptSuc').classList.add('on');setTimeout(()=>document.getElementById('ptSuc').classList.remove('on'),3000);
   toast('✓ Pago registrado — '+card+' — '+ars(pagar));autoSave();
 }
 function clearPayTC(){
-  ['ptTotal','ptPagar'].forEach(id=>document.getElementById(id).value='');
+  ['ptTotal','ptPagar','ptPayDate'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('payPreview').classList.remove('on');
 }
 // ── Transfers ──
@@ -1769,7 +1773,7 @@ function render(){
   buildAllPers();populateCatSel();populateAllAccSels();populateCreditCats();populateMovFilters();updateAddCats();renderAccList();renderCatList();
   document.getElementById('aDate').value=tod();document.getElementById('cDate').value=tod();document.getElementById('cStart').value=nextM(thisM());
   document.getElementById('trDate').value=tod();populateSel('trFrom',accounts);populateSel('trTo',accounts);
-  populateCardSels();document.getElementById('ptNextClose').value='';
+  populateCardSels();document.getElementById('ptNextClose').value='';if(document.getElementById('ptPayDate'))document.getElementById('ptPayDate').value=tod();
   try{updateResumen();}catch(e){console.error(e);}try{renderMovs();}catch(e){console.error(e);}try{updateCreditos();}catch(e){console.error(e);}
 }
 
